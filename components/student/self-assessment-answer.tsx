@@ -55,7 +55,7 @@ export function SelfAssessmentAnswer({
       {/* Hint to type comment first */}
       {!submitted && (
         <p className="text-xs text-muted-foreground">
-          点击星标即可提交评分（含下方评语）
+          （先填写自评学习评语再进行评级）
         </p>
       )}
 

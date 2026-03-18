@@ -5,6 +5,7 @@ import { students, courseStudents, courses } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import bcrypt from "bcryptjs";
 
 async function verifyCourseOwnership(courseId: string) {
   const user = await getAuthUser();
@@ -88,6 +89,7 @@ export async function importStudents(
           class: item.class || null,
           phone: item.phone || null,
           email: item.email || null,
+          passwordHash: await bcrypt.hash(item.studentNo, 10),
         })
         .returning();
       studentId = newStudent.id;
@@ -157,6 +159,7 @@ export async function addStudent(
         class: studentClass,
         phone,
         email,
+        passwordHash: await bcrypt.hash(studentNo, 10),
       })
       .returning();
     studentId = newStudent.id;

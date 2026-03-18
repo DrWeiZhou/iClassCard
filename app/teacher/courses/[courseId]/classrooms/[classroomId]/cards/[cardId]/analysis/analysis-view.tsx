@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import { ArrowLeft, BarChart3, ChevronUp } from "lucide-react";
 import { MultipleChoiceChart } from "@/components/teacher/analysis/multiple-choice-chart";
 import { FillBlankWordCloud } from "@/components/teacher/analysis/fill-blank-wordcloud";
 import { ShortAnswerDanmaku } from "@/components/teacher/analysis/short-answer-danmaku";
+import { getQuestionAnalysis } from "@/lib/actions/analysis";
 import type { AnalysisData } from "@/lib/actions/analysis";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -110,14 +111,29 @@ function SelfAssessmentStats({ answers }: { answers: AnalysisData["answers"] }) 
 }
 
 function QuestionAnalysis({
-  data,
+  data: initialData,
   index,
 }: {
   data: AnalysisData;
   index: number;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [data, setData] = useState(initialData);
+  const [isRefreshing, startRefresh] = useTransition();
   const { question, answers } = data;
+
+  const handleToggle = () => {
+    if (!expanded) {
+      // Fetch fresh data when expanding
+      startRefresh(async () => {
+        const fresh = await getQuestionAnalysis(question.id);
+        if (fresh) {
+          setData(fresh);
+        }
+      });
+    }
+    setExpanded(!expanded);
+  };
 
   const renderAnalysis = () => {
     switch (question.type) {
@@ -175,13 +191,18 @@ function QuestionAnalysis({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setExpanded(!expanded)}
+          onClick={handleToggle}
+          disabled={isRefreshing}
           className="w-full"
         >
           {expanded ? (
             <>
               <ChevronUp className="mr-1.5 h-4 w-4" />
               收起分析
+            </>
+          ) : isRefreshing ? (
+            <>
+              加载中...
             </>
           ) : (
             <>

@@ -58,8 +58,9 @@ export const students = pgTable("students", {
   grade: varchar("grade", { length: 20 }),
   major: varchar("major", { length: 100 }),
   class: varchar("class", { length: 50 }),
-  phone: varchar("phone", { length: 20 }),
+  phone: varchar("phone", { length: 50 }),
   email: varchar("email", { length: 100 }),
+  passwordHash: varchar("password_hash", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

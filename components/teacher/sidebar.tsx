@@ -5,10 +5,11 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { BookOpen, BrainCircuit, FileText, GraduationCap, User } from "lucide-react";
+import { BookOpen, BrainCircuit, CalendarDays, FileText, GraduationCap, User } from "lucide-react";
 
 const navItems = [
   { href: "/teacher/courses", label: "课程管理", icon: BookOpen },
+  { href: "/teacher/classrooms", label: "课堂管理", icon: CalendarDays },
   { href: "/teacher/models", label: "模型管理", icon: BrainCircuit },
   { href: "/teacher/templates", label: "模板维护", icon: FileText },
   { href: "/teacher/profile", label: "个人信息", icon: User },

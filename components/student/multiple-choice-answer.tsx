@@ -172,15 +172,14 @@ export function MultipleChoiceAnswer({
       )}
 
       {submitted && score !== null && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm">
+          <span className="text-muted-foreground">得分：</span>
+          <span className="font-semibold">{score}</span>
+          <span className="text-muted-foreground"> / {maxScore}</span>
           {score === maxScore ? (
-            <span className="text-green-600 dark:text-green-400 font-medium">
-              回答正确
-            </span>
+            <span className="ml-2 text-green-600 dark:text-green-400 font-medium">回答正确</span>
           ) : (
-            <span className="text-red-600 dark:text-red-400 font-medium">
-              回答错误
-            </span>
+            <span className="ml-2 text-red-600 dark:text-red-400 font-medium">回答错误</span>
           )}
         </p>
       )}

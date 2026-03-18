@@ -2,6 +2,7 @@ import { getAuthUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getCardWithQuestions } from "@/lib/actions/cards";
 import { CardEditor } from "@/components/teacher/card-editor";
+import { DEFAULT_TEMPLATES } from "@/lib/ai/default-templates";
 
 export default async function CardEditPage({
   params,
@@ -26,6 +27,6 @@ export default async function CardEditPage({
   }
 
   return (
-    <CardEditor card={card} courseId={courseId} classroomId={classroomId} />
+    <CardEditor card={card} courseId={courseId} classroomId={classroomId} defaultTemplates={DEFAULT_TEMPLATES} />
   );
 }

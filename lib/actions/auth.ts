@@ -99,19 +99,32 @@ export async function loginStudent(
   formData: FormData
 ) {
   const studentNo = formData.get("studentNo") as string;
-  const name = formData.get("name") as string;
+  const password = formData.get("password") as string;
 
-  if (!studentNo || !name) {
-    return { error: "请输入学号和姓名" };
+  if (!studentNo || !password) {
+    return { error: "请输入学号和密码" };
   }
 
   const [student] = await db
     .select()
     .from(students)
-    .where(and(eq(students.studentNo, studentNo), eq(students.name, name)));
+    .where(eq(students.studentNo, studentNo));
 
   if (!student) {
-    return { error: "学号或姓名不匹配" };
+    return { error: "学号或密码错误" };
+  }
+
+  // Verify password: if no passwordHash set (legacy), compare with studentNo directly
+  if (student.passwordHash) {
+    const valid = await bcrypt.compare(password, student.passwordHash);
+    if (!valid) {
+      return { error: "学号或密码错误" };
+    }
+  } else {
+    // Legacy student without password hash - default password is studentNo
+    if (password !== student.studentNo) {
+      return { error: "学号或密码错误" };
+    }
   }
 
   await setAuthCookie({

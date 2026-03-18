@@ -91,13 +91,12 @@ function generateClientId() {
   return `q_${Date.now()}_${++clientIdCounter}`;
 }
 
-function createDefaultQuestion(type: QuestionType): QuestionState {
+function createDefaultQuestion(type: QuestionType, defaultTemplates?: Record<string, Record<string, string>>): QuestionState {
   const base = {
     clientId: generateClientId(),
     type,
     title: "",
     score: 0,
-    feedbackPrompt: "",
   };
 
   switch (type) {
@@ -114,11 +113,12 @@ function createDefaultQuestion(type: QuestionType): QuestionState {
         ],
         correctAnswer: "[]",
         score: 10,
+        feedbackPrompt: defaultTemplates?.multiple_choice?.feedback ?? "",
       };
     case "fill_blank":
-      return { ...base, correctAnswer: "[]", score: 10 };
+      return { ...base, correctAnswer: "[]", score: 10, gradingPrompt: defaultTemplates?.fill_blank?.scoring ?? "", feedbackPrompt: defaultTemplates?.fill_blank?.feedback ?? "" };
     case "short_answer":
-      return { ...base, correctAnswer: "", score: 10 };
+      return { ...base, correctAnswer: "", score: 10, gradingPrompt: defaultTemplates?.short_answer?.scoring ?? "", feedbackPrompt: defaultTemplates?.short_answer?.feedback ?? "" };
   }
 }
 
@@ -278,10 +278,12 @@ export function CardEditor({
   card,
   courseId,
   classroomId,
+  defaultTemplates,
 }: {
   card: CardData;
   courseId: string;
   classroomId: string;
+  defaultTemplates?: Record<string, Record<string, string>>;
 }) {
   const router = useRouter();
   const [cardName, setCardName] = useState(card.name);
@@ -329,8 +331,8 @@ export function CardEditor({
   }, []);
 
   const handleAddQuestion = useCallback((type: QuestionType) => {
-    setQuestions((items) => [...items, createDefaultQuestion(type)]);
-  }, []);
+    setQuestions((items) => [...items, createDefaultQuestion(type, defaultTemplates)]);
+  }, [defaultTemplates]);
 
   function handleSave() {
     // Validate
@@ -431,20 +433,9 @@ export function CardEditor({
       {/* Total score display */}
       <div className="flex items-center justify-between rounded-lg border p-3">
         <span className="text-sm font-medium">总分</span>
-        <div className="flex items-center gap-2">
-          <span
-            className={`text-lg font-bold ${
-              totalScore !== 100 ? "text-destructive" : "text-green-600"
-            }`}
-          >
-            {totalScore} 分
-          </span>
-          {totalScore !== 100 && (
-            <span className="text-xs text-destructive">
-              (总分应为 100 分)
-            </span>
-          )}
-        </div>
+        <span className="text-lg font-bold">
+          {totalScore} 分
+        </span>
       </div>
     </div>
   );

@@ -92,3 +92,32 @@ export async function getCardInfo(cardId: string) {
   if (result.length === 0) return null;
   return result[0].card;
 }
+
+export async function getQuestionAnalysis(questionId: string): Promise<AnalysisData | null> {
+  const user = await getAuthUser();
+  if (!user || user.role !== "teacher") return null;
+
+  // Get question and verify ownership
+  const [question] = await db
+    .select()
+    .from(cardQuestions)
+    .where(eq(cardQuestions.id, questionId));
+  if (!question) return null;
+
+  // Verify ownership through card → classroom → course → teacher
+  const ownerCheck = await db
+    .select({ teacherId: courses.teacherId })
+    .from(learningCards)
+    .innerJoin(classrooms, eq(learningCards.classroomId, classrooms.id))
+    .innerJoin(courses, eq(classrooms.courseId, courses.id))
+    .where(and(eq(learningCards.id, question.cardId), eq(courses.teacherId, user.id)));
+
+  if (ownerCheck.length === 0) return null;
+
+  const answers = await db
+    .select()
+    .from(studentAnswers)
+    .where(eq(studentAnswers.questionId, questionId));
+
+  return { question, answers };
+}

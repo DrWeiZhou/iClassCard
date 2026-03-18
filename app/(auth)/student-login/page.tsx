@@ -21,7 +21,7 @@ export default function StudentLoginPage() {
     <Card>
       <CardHeader>
         <CardTitle className="text-xl">学生登录</CardTitle>
-        <CardDescription>使用学号和姓名登录</CardDescription>
+        <CardDescription>使用学号和密码登录（初始密码为学号）</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
@@ -40,11 +40,12 @@ export default function StudentLoginPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="name">姓名</Label>
+            <Label htmlFor="password">密码</Label>
             <Input
-              id="name"
-              name="name"
-              placeholder="请输入姓名"
+              id="password"
+              name="password"
+              type="password"
+              placeholder="请输入密码"
               required
             />
           </div>

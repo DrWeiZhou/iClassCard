@@ -148,3 +148,32 @@ export async function deleteClassroom(courseId: string, classroomId: string) {
   revalidatePath(`/teacher/courses/${courseId}/classrooms`);
   return { success: true };
 }
+
+export async function getAllClassrooms() {
+  const user = await getAuthUser();
+  if (!user || user.role !== "teacher") return [];
+
+  return db
+    .select({
+      id: classrooms.id,
+      courseId: classrooms.courseId,
+      courseName: courses.name,
+      date: classrooms.date,
+      time: classrooms.time,
+      name: classrooms.name,
+      room: classrooms.room,
+      instructor: classrooms.instructor,
+      notes: classrooms.notes,
+      createdAt: classrooms.createdAt,
+    })
+    .from(classrooms)
+    .innerJoin(courses, eq(classrooms.courseId, courses.id))
+    .where(eq(courses.teacherId, user.id))
+    .orderBy(desc(classrooms.date));
+}
+
+export async function getTeacherCourses() {
+  const user = await getAuthUser();
+  if (!user || user.role !== "teacher") return [];
+  return db.select({ id: courses.id, name: courses.name }).from(courses).where(eq(courses.teacherId, user.id));
+}

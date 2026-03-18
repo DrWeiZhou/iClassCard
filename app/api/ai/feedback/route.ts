@@ -13,6 +13,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 import { fillTemplate } from "@/lib/ai/prompts";
+import { DEFAULT_TEMPLATES } from "@/lib/ai/default-templates";
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("auth-token")?.value;
@@ -29,7 +30,11 @@ export async function POST(request: NextRequest) {
     .select()
     .from(cardQuestions)
     .where(eq(cardQuestions.id, questionId));
-  if (!question || !question.feedbackPrompt) {
+  if (!question) {
+    return new Response("题目不存在", { status: 400 });
+  }
+  const feedbackPrompt = question.feedbackPrompt || DEFAULT_TEMPLATES[question.type]?.feedback;
+  if (!feedbackPrompt) {
     return new Response("无批改模板", { status: 400 });
   }
 
@@ -69,7 +74,7 @@ export async function POST(request: NextRequest) {
       ? answer.answer
       : JSON.stringify(answer.answer);
 
-  const prompt = fillTemplate(question.feedbackPrompt, {
+  const prompt = fillTemplate(feedbackPrompt, {
     题干: question.title,
     标准答案: question.correctAnswer || "",
     学生答案: studentAnswerText,

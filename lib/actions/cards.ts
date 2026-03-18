@@ -104,10 +104,6 @@ export async function publishCard(cardId: string) {
     return { error: "该学习卡已发放" };
   }
 
-  if (card.totalScore !== 100) {
-    return { error: `总分必须为100分才能发放，当前总分为${card.totalScore}分` };
-  }
-
   await db
     .update(learningCards)
     .set({ status: "published", updatedAt: new Date() })

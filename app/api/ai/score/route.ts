@@ -13,6 +13,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { verifyToken } from "@/lib/auth";
 import { fillTemplate } from "@/lib/ai/prompts";
+import { DEFAULT_TEMPLATES } from "@/lib/ai/default-templates";
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("auth-token")?.value;
@@ -30,7 +31,11 @@ export async function POST(request: NextRequest) {
     .select()
     .from(cardQuestions)
     .where(eq(cardQuestions.id, questionId));
-  if (!question || !question.gradingPrompt) {
+  if (!question) {
+    return NextResponse.json({ error: "题目不存在" }, { status: 400 });
+  }
+  const gradingPrompt = question.gradingPrompt || DEFAULT_TEMPLATES[question.type]?.scoring;
+  if (!gradingPrompt) {
     return NextResponse.json({ error: "无打分模板" }, { status: 400 });
   }
 
@@ -73,7 +78,7 @@ export async function POST(request: NextRequest) {
       ? answer.answer
       : JSON.stringify(answer.answer);
 
-  const prompt = fillTemplate(question.gradingPrompt, {
+  const prompt = fillTemplate(gradingPrompt, {
     题干: question.title,
     标准答案: question.correctAnswer || "",
     学生答案: studentAnswerText,
