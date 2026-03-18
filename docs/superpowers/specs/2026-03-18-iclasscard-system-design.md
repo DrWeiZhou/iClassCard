@@ -32,6 +32,8 @@ Two roles: **Teacher** (manages courses, students, classrooms, learning cards, L
 | JWT | `jose` (Edge-compatible) |
 | Password hashing | `bcryptjs` |
 | Charts | `recharts` (multiple-choice analysis) |
+| Word cloud | `react-wordcloud` (fill-in-the-blank analysis) |
+| Danmaku | `rc-bullets` or custom CSS animation (short-answer analysis) |
 | Drag & drop | `@dnd-kit/core` (question reordering) |
 
 ## Architecture
@@ -191,7 +193,7 @@ Unique constraint on (course_id, student_id).
 | classroom_id | uuid | FK -> classrooms |
 | name | varchar(200) | Default: classroom name |
 | status | varchar(20) | 'draft' or 'published' |
-| total_score | integer | Auto-calculated, max 100 |
+| total_score | integer | Sum of all question scores. Publishing requires total_score == 100. Editor shows running total with warning if != 100. |
 | created_at | timestamp | |
 | updated_at | timestamp | |
 
@@ -238,6 +240,16 @@ Unique constraint on (question_id, student_id).
 | content | text | Template with {} placeholders |
 | created_at | timestamp | |
 | updated_at | timestamp | |
+
+Unique constraint on (teacher_id, question_type, template_kind) — one template per type per teacher.
+
+## Environment Variables
+
+Required environment variables (`.env.local`):
+- `DATABASE_URL` — Supabase PostgreSQL connection string
+- `DIRECT_URL` — Supabase direct connection (for migrations)
+- `JWT_SECRET` — Secret key for signing JWTs
+- `NEXT_PUBLIC_APP_URL` — Application URL (for redirects)
 
 ## Authentication
 
@@ -338,14 +350,16 @@ Unique constraint on (question_id, student_id).
 - Status indicators (answered/unanswered)
 
 **Answer Page** (`/student/cards/[cardId]`):
+- On page load: query all `student_answers` for this student + card. For previously submitted questions, pre-populate the answer, display the score, render inputs in disabled/read-only state. Only unanswered questions show active inputs.
 - Each question rendered with its own submit button
 - Per-type behavior:
   - **Self-assessment**: star rating (0-5, auto-submit on click) + text area (submit button)
-  - **Multiple-choice**: checkboxes for options + submit button → instant comparison with correct answer
+  - **Multiple-choice**: checkboxes for options + submit button → instant comparison with correct answer. Scoring: all-or-nothing (full points if all correct options selected and no incorrect ones, 0 otherwise).
   - **Fill-in-the-blank**: input fields per blank + submit button → AI scoring
   - **Short-answer**: textarea (markdown) + submit button → AI scoring
-- After submission: question locked, score displayed
+- After submission: question locked (disabled inputs, no submit button), score displayed, previously submitted answers shown
 - AI feedback streams in below the question via Vercel AI SDK
+- Submission lock is server-enforced: Server Action checks for existing `student_answers` record before accepting a new submission. The unique constraint on `(question_id, student_id)` is the final safeguard.
 
 ### 8. AI Scoring and Feedback
 
@@ -358,7 +372,8 @@ Student submits answer
 → Replace placeholders: {题干} {标准答案} {学生答案}
 → Call teacher's default LLM (base_url + api_key + model_name)
 → Parse integer response (0-10)
-→ Update student_answers.score
+→ Scale to question points: awarded = round(llm_score / 10 * question.score)
+→ Update student_answers.score with the awarded points
 → Return score to client
 ```
 
@@ -373,7 +388,7 @@ After scoring completes
 → Save completed feedback to student_answers.ai_feedback
 ```
 
-**Multiple-choice**: auto-graded client-side against correct_answer. No LLM call for scoring. Feedback prompt still sent to LLM for personalized explanation.
+**Multiple-choice**: auto-graded client-side against correct_answer. No LLM call for scoring. Scoring is all-or-nothing: full points if all correct options are selected and no incorrect ones, 0 points otherwise. Feedback prompt is still sent to LLM for personalized explanation. Note: the requirements doc says "应用大语言模型自动批改多选题" — we interpret "批改" as generating personalized feedback/explanation, not scoring. Scoring is deterministic comparison against the standard answer.
 
 **Self-assessment**: no scoring or AI feedback. Star rating and text saved directly.
 
