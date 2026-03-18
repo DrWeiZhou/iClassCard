@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useState, useTransition } from "react";
 import {
   Dialog,
   DialogContent,
@@ -47,33 +47,33 @@ export function CourseFormDialog({
   onOpenChange,
 }: CourseFormDialogProps) {
   const isEdit = mode === "edit";
-
-  const boundUpdateCourse = course
-    ? updateCourse.bind(null, course.id)
-    : undefined;
-
-  const action = isEdit ? boundUpdateCourse! : createCourse;
-
-  const [state, formAction, isPending] = useActionState(action, null);
-  const prevStateRef = useRef(state);
   const [semester, setSemester] = useState(course?.semester ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
-  // Reset semester when course changes (for edit mode)
-  useEffect(() => {
-    setSemester(course?.semester ?? "");
-  }, [course]);
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    setError(null);
 
-  useEffect(() => {
-    if (state && state !== prevStateRef.current) {
-      prevStateRef.current = state;
-      if ("success" in state && state.success) {
+    startTransition(async () => {
+      let result;
+      if (isEdit && course) {
+        result = await updateCourse(course.id, null, formData);
+      } else {
+        result = await createCourse(null, formData);
+      }
+
+      if (result && "error" in result && result.error) {
+        setError(result.error);
+        toast.error(result.error);
+      } else if (result && "success" in result && result.success) {
         toast.success(isEdit ? "课程已更新" : "课程已创建");
         onOpenChange(false);
-      } else if ("error" in state && state.error) {
-        toast.error(state.error);
+        setError(null);
       }
-    }
-  }, [state, isEdit, onOpenChange]);
+    });
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -84,7 +84,7 @@ export function CourseFormDialog({
             {isEdit ? "修改课程信息" : "创建一个新的课程"}
           </DialogDescription>
         </DialogHeader>
-        <form action={formAction} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="year">学年</Label>
             <Input
@@ -149,8 +149,8 @@ export function CourseFormDialog({
             />
           </div>
 
-          {state && "error" in state && state.error && (
-            <p className="text-sm text-destructive">{state.error}</p>
+          {error && (
+            <p className="text-sm text-destructive">{error}</p>
           )}
 
           <DialogFooter>

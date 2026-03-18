@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useState, useTransition } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,22 +18,26 @@ import { toast } from "sonner";
 
 export function StudentFormDialog({ courseId }: { courseId: string }) {
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
-  const boundAddStudent = addStudent.bind(null, courseId);
-  const [state, formAction, isPending] = useActionState(boundAddStudent, null);
-  const prevStateRef = useRef(state);
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    setError(null);
 
-  useEffect(() => {
-    if (state && state !== prevStateRef.current) {
-      prevStateRef.current = state;
-      if ("success" in state && state.success) {
+    startTransition(async () => {
+      const result = await addStudent(courseId, null, formData);
+      if (result && "error" in result && result.error) {
+        setError(result.error);
+        toast.error(result.error);
+      } else if (result && "success" in result && result.success) {
         toast.success("学生已添加");
         setOpen(false);
-      } else if ("error" in state && state.error) {
-        toast.error(state.error);
+        setError(null);
       }
-    }
-  }, [state]);
+    });
+  }
 
   return (
     <>
@@ -46,7 +50,7 @@ export function StudentFormDialog({ courseId }: { courseId: string }) {
               手动添加一名学生到本课程
             </DialogDescription>
           </DialogHeader>
-          <form action={formAction} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="studentNo">学号 *</Label>
@@ -147,8 +151,8 @@ export function StudentFormDialog({ courseId }: { courseId: string }) {
               </Label>
             </div>
 
-            {state && "error" in state && state.error && (
-              <p className="text-sm text-destructive">{state.error}</p>
+            {error && (
+              <p className="text-sm text-destructive">{error}</p>
             )}
 
             <DialogFooter>

@@ -63,6 +63,7 @@ export function CourseList({ courses }: { courses: Course[] }) {
       </div>
 
       <CourseFormDialog
+        key={editingCourse?.id ?? "create"}
         mode="edit"
         course={editingCourse ?? undefined}
         open={editingCourse !== null}

@@ -65,7 +65,7 @@ export async function importStudents(
     if (!item.studentNo || !item.name) continue;
 
     // Check if student exists by studentNo
-    let [existing] = await db
+    const [existing] = await db
       .select()
       .from(students)
       .where(eq(students.studentNo, item.studentNo));
@@ -135,7 +135,7 @@ export async function addStudent(
   const isRetake = formData.get("isRetake") === "on";
 
   // Check if student exists by studentNo
-  let [existing] = await db
+  const [existing] = await db
     .select()
     .from(students)
     .where(eq(students.studentNo, studentNo));

@@ -43,7 +43,7 @@ export function ModelTable({ models }: { models: Model[] }) {
   if (models.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
-        暂无模型配置，请点击"新建模型"添加
+        暂无模型配置，请点击&quot;新建模型&quot;添加
       </div>
     );
   }
@@ -156,7 +156,7 @@ function ModelRow({
               <AlertDialogHeader>
                 <AlertDialogTitle>确认删除</AlertDialogTitle>
                 <AlertDialogDescription>
-                  确定要删除模型"{model.displayName}"吗？此操作不可撤销。
+                  确定要删除模型&quot;{model.displayName}&quot;吗？此操作不可撤销。
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
