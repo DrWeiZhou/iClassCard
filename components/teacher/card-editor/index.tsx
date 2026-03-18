@@ -74,7 +74,7 @@ type CardData = {
 
 const TYPE_LABELS: Record<QuestionType, string> = {
   self_assessment: "自我评测",
-  multiple_choice: "选择题",
+  multiple_choice: "多选题",
   fill_blank: "填空题",
   short_answer: "简述题",
 };
@@ -345,6 +345,7 @@ export function CardEditor({
     startTransition(async () => {
       const result = await saveQuestions(
         card.id,
+        cardName,
         questions.map((q, index) => ({
           type: q.type,
           order: index,

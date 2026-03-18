@@ -17,7 +17,7 @@ export type QuestionType =
 
 const QUESTION_TYPES: { type: QuestionType; label: string }[] = [
   { type: "self_assessment", label: "自我评测" },
-  { type: "multiple_choice", label: "选择题" },
+  { type: "multiple_choice", label: "多选题" },
   { type: "fill_blank", label: "填空题" },
   { type: "short_answer", label: "简述题" },
 ];

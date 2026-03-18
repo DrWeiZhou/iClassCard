@@ -138,11 +138,12 @@ export async function deleteCard(cardId: string) {
   return { success: true };
 }
 
-// Save questions for a card (verify ownership, only draft cards)
+// Save card name and questions (verify ownership, only draft cards)
 // Delete-and-reinsert strategy: delete all existing questions, insert new ones
-// Update totalScore on the card
+// Update name and totalScore on the card
 export async function saveQuestions(
   cardId: string,
+  cardName: string,
   questions: Array<{
     id?: string;
     type: string;
@@ -191,7 +192,7 @@ export async function saveQuestions(
   // Update totalScore on the card
   await db
     .update(learningCards)
-    .set({ totalScore, updatedAt: new Date() })
+    .set({ name: cardName.trim(), totalScore, updatedAt: new Date() })
     .where(eq(learningCards.id, cardId));
 
   revalidatePath(
