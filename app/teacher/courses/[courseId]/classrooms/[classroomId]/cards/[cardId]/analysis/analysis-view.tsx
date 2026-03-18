@@ -11,7 +11,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BarChart3, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, BarChart3, ChevronUp } from "lucide-react";
 import { MultipleChoiceChart } from "@/components/teacher/analysis/multiple-choice-chart";
 import { FillBlankWordCloud } from "@/components/teacher/analysis/fill-blank-wordcloud";
 import { ShortAnswerDanmaku } from "@/components/teacher/analysis/short-answer-danmaku";
