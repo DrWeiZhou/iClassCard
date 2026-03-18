@@ -81,6 +81,13 @@ export async function POST(request: NextRequest) {
   const result = streamText({
     model: openai(model.modelName),
     prompt,
+    async onFinish({ text }) {
+      // Persist feedback to database after streaming completes
+      await db
+        .update(studentAnswers)
+        .set({ aiFeedback: text })
+        .where(eq(studentAnswers.id, answerId));
+    },
   });
 
   return result.toTextStreamResponse();
