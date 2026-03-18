@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useCompletion } from "@ai-sdk/react";
 import { Button } from "@/components/ui/button";
 import { submitAnswer } from "@/lib/actions/answers";
 import { getDeviceType } from "@/lib/utils";
 import { toast } from "sonner";
-import { Check, X } from "lucide-react";
+import { Check, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Option = {
@@ -17,6 +18,7 @@ type ExistingAnswer = {
   id: string;
   answer: unknown;
   score: number | null;
+  aiFeedback?: string | null;
 } | null;
 
 export function MultipleChoiceAnswer({
@@ -50,6 +52,22 @@ export function MultipleChoiceAnswer({
     existingAnswer?.score ?? null
   );
   const [isPending, startTransition] = useTransition();
+  const [answerId, setAnswerId] = useState<string | null>(
+    existingAnswer?.id ?? null
+  );
+
+  const {
+    completion,
+    complete,
+    isLoading: isFeedbackLoading,
+  } = useCompletion({
+    api: "/api/ai/feedback",
+    streamProtocol: "text",
+    body: { questionId, answerId },
+  });
+
+  // Use existing feedback if available, otherwise use streamed completion
+  const feedbackText = existingAnswer?.aiFeedback || completion;
 
   function toggleOption(label: string) {
     if (submitted || isPending) return;
@@ -71,7 +89,17 @@ export function MultipleChoiceAnswer({
       }
       setSubmitted(true);
       setScore(result.score ?? null);
+      setAnswerId(result.answerId!);
       toast.success("已提交");
+
+      // Trigger AI feedback streaming (scoring is already done server-side)
+      try {
+        await complete("", {
+          body: { questionId, answerId: result.answerId },
+        });
+      } catch {
+        // Feedback failed silently
+      }
     });
   }
 
@@ -155,6 +183,27 @@ export function MultipleChoiceAnswer({
             </span>
           )}
         </p>
+      )}
+
+      {/* AI Feedback streaming */}
+      {submitted && (isFeedbackLoading || feedbackText) && (
+        <div className="rounded-lg bg-muted/50 p-3 text-sm">
+          <p className="font-medium text-muted-foreground mb-1">
+            {isFeedbackLoading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                AI 反馈生成中...
+              </span>
+            ) : (
+              "AI 反馈："
+            )}
+          </p>
+          {feedbackText && (
+            <div className="whitespace-pre-wrap break-words overflow-y-auto max-h-[300px]">
+              {feedbackText}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
