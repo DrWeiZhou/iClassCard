@@ -15,6 +15,13 @@
       "when": 1773911345411,
       "tag": "0001_wet_next_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773924230654,
+      "tag": "0002_fearless_steel_serpent",
+      "breakpoints": true
     }
   ]
 }

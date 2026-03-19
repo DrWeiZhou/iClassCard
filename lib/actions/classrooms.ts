@@ -71,6 +71,7 @@ export async function createClassroom(
   });
 
   revalidatePath(`/teacher/courses/${courseId}/classrooms`);
+  revalidatePath(`/teacher/classrooms`);
   return { success: true };
 }
 
@@ -124,6 +125,7 @@ export async function updateClassroom(
     .where(eq(classrooms.id, classroomId));
 
   revalidatePath(`/teacher/courses/${courseId}/classrooms`);
+  revalidatePath(`/teacher/classrooms`);
   return { success: true };
 }
 
@@ -146,6 +148,7 @@ export async function deleteClassroom(courseId: string, classroomId: string) {
   await db.delete(classrooms).where(eq(classrooms.id, classroomId));
 
   revalidatePath(`/teacher/courses/${courseId}/classrooms`);
+  revalidatePath(`/teacher/classrooms`);
   return { success: true };
 }
 

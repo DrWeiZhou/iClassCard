@@ -34,6 +34,9 @@ export async function submitAnswer(
 
   if (!question) return { error: "题目不存在" };
 
+  // Check if question is closed (收题)
+  if (question.closedAt) return { error: "该题目已收题，无法作答" };
+
   let score: number | null = null;
 
   // Multiple-choice: auto-grade

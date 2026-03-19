@@ -15,6 +15,7 @@ type Question = {
   score: number;
   gradingPrompt: string | null;
   feedbackPrompt: string | null;
+  closedAt: Date | null;
 };
 
 type ExistingAnswer = {

@@ -25,6 +25,7 @@ export type AnalysisQuestion = {
   score: number;
   gradingPrompt: string | null;
   feedbackPrompt: string | null;
+  closedAt: Date | null;
   createdAt: Date;
 };
 
@@ -122,6 +123,37 @@ export async function getQuestionAnalysis(questionId: string): Promise<AnalysisD
     .where(eq(studentAnswers.questionId, questionId));
 
   return { question, answers };
+}
+
+export async function closeQuestion(questionId: string) {
+  const user = await getAuthUser();
+  if (!user || user.role !== "teacher") return { error: "未授权" };
+
+  // Get question and verify ownership
+  const [question] = await db
+    .select()
+    .from(cardQuestions)
+    .where(eq(cardQuestions.id, questionId));
+  if (!question) return { error: "题目不存在" };
+
+  // Verify ownership through card → classroom → course → teacher
+  const ownerCheck = await db
+    .select({ teacherId: courses.teacherId })
+    .from(learningCards)
+    .innerJoin(classrooms, eq(learningCards.classroomId, classrooms.id))
+    .innerJoin(courses, eq(classrooms.courseId, courses.id))
+    .where(and(eq(learningCards.id, question.cardId), eq(courses.teacherId, user.id)));
+
+  if (ownerCheck.length === 0) return { error: "未授权" };
+
+  if (question.closedAt) return { error: "该题目已收题" };
+
+  await db
+    .update(cardQuestions)
+    .set({ closedAt: new Date() })
+    .where(eq(cardQuestions.id, questionId));
+
+  return { success: true };
 }
 
 export type GroupRatingDetail = {

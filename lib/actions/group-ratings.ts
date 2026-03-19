@@ -77,6 +77,9 @@ export async function submitGroupRating(
   if (!question || question.type !== "group_discussion")
     return { error: "题目不存在" };
 
+  // Check if question is closed (收题)
+  if (question.closedAt) return { error: "该题目已收题，无法作答" };
+
   // Prevent self-rating
   if (user.id === targetStudentId)
     return { error: "不能给自己打分" };

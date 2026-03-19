@@ -121,6 +121,7 @@ export const cardQuestions = pgTable("card_questions", {
   score: integer("score").default(0).notNull(),
   gradingPrompt: text("grading_prompt"),
   feedbackPrompt: text("feedback_prompt"),
+  closedAt: timestamp("closed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

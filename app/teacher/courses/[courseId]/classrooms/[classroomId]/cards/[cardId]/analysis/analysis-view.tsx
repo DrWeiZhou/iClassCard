@@ -10,14 +10,26 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BarChart3, ChevronUp } from "lucide-react";
+import { ArrowLeft, BarChart3, ChevronUp, Ban } from "lucide-react";
 import { MultipleChoiceChart } from "@/components/teacher/analysis/multiple-choice-chart";
 import { FillBlankWordCloud } from "@/components/teacher/analysis/fill-blank-wordcloud";
 import { ShortAnswerDanmaku } from "@/components/teacher/analysis/short-answer-danmaku";
 import { GroupDiscussionAnalysis } from "@/components/teacher/analysis/group-discussion-analysis";
-import { getQuestionAnalysis } from "@/lib/actions/analysis";
+import { getQuestionAnalysis, closeQuestion } from "@/lib/actions/analysis";
 import type { AnalysisData } from "@/lib/actions/analysis";
+import { toast } from "sonner";
 
 const TYPE_LABELS: Record<string, string> = {
   multiple_choice: "选择题",
@@ -124,6 +136,8 @@ function QuestionAnalysis({
   const [expanded, setExpanded] = useState(false);
   const [data, setData] = useState(initialData);
   const [isRefreshing, startRefresh] = useTransition();
+  const [isClosed, setIsClosed] = useState(!!initialData.question.closedAt);
+  const [isClosing, startClosing] = useTransition();
   const { question, answers } = data;
 
   const handleToggle = () => {
@@ -137,6 +151,18 @@ function QuestionAnalysis({
       });
     }
     setExpanded(!expanded);
+  };
+
+  const handleClose = () => {
+    startClosing(async () => {
+      const result = await closeQuestion(question.id);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        setIsClosed(true);
+        toast.success("已收题，学生无法继续作答");
+      }
+    });
   };
 
   const renderAnalysis = () => {
@@ -215,35 +241,70 @@ function QuestionAnalysis({
               学习内容：{question.content}
             </div>
           )}
-          {(question.type === "fill_blank" || question.type === "short_answer") && question.correctAnswer && (
-            <div className="text-xs text-muted-foreground">
-              参考答案：{question.correctAnswer}
-            </div>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleToggle}
+            disabled={isRefreshing}
+            className="flex-1"
+          >
+            {expanded ? (
+              <>
+                <ChevronUp className="mr-1.5 h-4 w-4" />
+                收起分析
+              </>
+            ) : isRefreshing ? (
+              <>
+                加载中...
+              </>
+            ) : (
+              <>
+                <BarChart3 className="mr-1.5 h-4 w-4" />
+                分析
+              </>
+            )}
+          </Button>
+          {isClosed ? (
+            <Button variant="secondary" size="sm" disabled className="shrink-0">
+              <Ban className="mr-1.5 h-4 w-4" />
+              已收题
+            </Button>
+          ) : (
+            <AlertDialog>
+              <AlertDialogTrigger
+                render={
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={isClosing}
+                    className="shrink-0"
+                  />
+                }
+              >
+                {isClosing ? "收题中..." : "收题"}
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>确认收题</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    收题后学生将无法继续作答该题目，此操作不可撤销。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>取消</AlertDialogCancel>
+                  <AlertDialogAction
+                    variant="destructive"
+                    onClick={handleClose}
+                  >
+                    确认收题
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleToggle}
-          disabled={isRefreshing}
-          className="w-full"
-        >
-          {expanded ? (
-            <>
-              <ChevronUp className="mr-1.5 h-4 w-4" />
-              收起分析
-            </>
-          ) : isRefreshing ? (
-            <>
-              加载中...
-            </>
-          ) : (
-            <>
-              <BarChart3 className="mr-1.5 h-4 w-4" />
-              分析
-            </>
-          )}
-        </Button>
         {expanded && (
           <div className="rounded-lg border bg-muted/10 p-4">
             {renderAnalysis()}

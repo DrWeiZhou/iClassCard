@@ -1,0 +1,1 @@
+ALTER TABLE "card_questions" ADD COLUMN "closed_at" timestamp;

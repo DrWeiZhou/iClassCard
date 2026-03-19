@@ -21,6 +21,7 @@ type Question = {
   score: number;
   gradingPrompt: string | null;
   feedbackPrompt: string | null;
+  closedAt: Date | null;
 };
 
 type ExistingAnswer = {
@@ -60,6 +61,7 @@ export function AnswerCard({
   onScoreUpdate?: (questionId: string, score: number) => void;
 }) {
   const isAnswered = existingAnswer !== null;
+  const isClosed = !!question.closedAt;
 
   return (
     <Card>
@@ -81,52 +83,60 @@ export function AnswerCard({
       <CardContent className="space-y-4">
         <div className="text-sm whitespace-pre-wrap">{question.title}</div>
 
-        {question.type === "self_assessment" && (
-          <SelfAssessmentAnswer
-            questionId={question.id}
-            existingAnswer={existingAnswer}
-            onScoreUpdate={onScoreUpdate}
-          />
-        )}
+        {isClosed && !isAnswered ? (
+          <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+            该题目已收题，无法作答
+          </div>
+        ) : (
+          <>
+            {question.type === "self_assessment" && (
+              <SelfAssessmentAnswer
+                questionId={question.id}
+                existingAnswer={existingAnswer}
+                onScoreUpdate={onScoreUpdate}
+              />
+            )}
 
-        {question.type === "multiple_choice" && (
-          <MultipleChoiceAnswer
-            questionId={question.id}
-            options={
-              (question.options as { label: string; text: string }[]) ?? []
-            }
-            correctAnswer={question.correctAnswer}
-            maxScore={question.score}
-            existingAnswer={existingAnswer}
-            onScoreUpdate={onScoreUpdate}
-          />
-        )}
+            {question.type === "multiple_choice" && (
+              <MultipleChoiceAnswer
+                questionId={question.id}
+                options={
+                  (question.options as { label: string; text: string }[]) ?? []
+                }
+                correctAnswer={question.correctAnswer}
+                maxScore={question.score}
+                existingAnswer={existingAnswer}
+                onScoreUpdate={onScoreUpdate}
+              />
+            )}
 
-        {question.type === "fill_blank" && (
-          <FillBlankAnswer
-            questionId={question.id}
-            title={question.title}
-            maxScore={question.score}
-            existingAnswer={existingAnswer}
-            onScoreUpdate={onScoreUpdate}
-          />
-        )}
+            {question.type === "fill_blank" && (
+              <FillBlankAnswer
+                questionId={question.id}
+                title={question.title}
+                maxScore={question.score}
+                existingAnswer={existingAnswer}
+                onScoreUpdate={onScoreUpdate}
+              />
+            )}
 
-        {question.type === "short_answer" && (
-          <ShortAnswerAnswer
-            questionId={question.id}
-            maxScore={question.score}
-            existingAnswer={existingAnswer}
-            onScoreUpdate={onScoreUpdate}
-          />
-        )}
+            {question.type === "short_answer" && (
+              <ShortAnswerAnswer
+                questionId={question.id}
+                maxScore={question.score}
+                existingAnswer={existingAnswer}
+                onScoreUpdate={onScoreUpdate}
+              />
+            )}
 
-        {question.type === "group_discussion" && (
-          <GroupDiscussionAnswer
-            questionId={question.id}
-            cardId={question.cardId}
-            onScoreUpdate={onScoreUpdate}
-          />
+            {question.type === "group_discussion" && (
+              <GroupDiscussionAnswer
+                questionId={question.id}
+                cardId={question.cardId}
+                onScoreUpdate={onScoreUpdate}
+              />
+            )}
+          </>
         )}
 
         {/* Score display for answered questions */}
