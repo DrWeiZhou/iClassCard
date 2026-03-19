@@ -7,6 +7,7 @@ import { SelfAssessmentAnswer } from "./self-assessment-answer";
 import { MultipleChoiceAnswer } from "./multiple-choice-answer";
 import { FillBlankAnswer } from "./fill-blank-answer";
 import { ShortAnswerAnswer } from "./short-answer-answer";
+import { GroupDiscussionAnswer } from "./group-discussion-answer";
 
 type Question = {
   id: string;
@@ -38,6 +39,7 @@ const TYPE_LABELS: Record<string, string> = {
   multiple_choice: "选择题",
   fill_blank: "填空题",
   short_answer: "简答题",
+  group_discussion: "分组讨论",
 };
 
 const TYPE_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
@@ -45,6 +47,7 @@ const TYPE_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
   multiple_choice: "default",
   fill_blank: "outline",
   short_answer: "outline",
+  group_discussion: "secondary",
 };
 
 export function AnswerCard({
@@ -114,6 +117,15 @@ export function AnswerCard({
             questionId={question.id}
             maxScore={question.score}
             existingAnswer={existingAnswer}
+            onScoreUpdate={onScoreUpdate}
+          />
+        )}
+
+        {question.type === "group_discussion" && (
+          <GroupDiscussionAnswer
+            questionId={question.id}
+            cardId={question.cardId}
+            maxScore={question.score}
             onScoreUpdate={onScoreUpdate}
           />
         )}
