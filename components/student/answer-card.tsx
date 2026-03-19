@@ -125,7 +125,6 @@ export function AnswerCard({
           <GroupDiscussionAnswer
             questionId={question.id}
             cardId={question.cardId}
-            maxScore={question.score}
             onScoreUpdate={onScoreUpdate}
           />
         )}

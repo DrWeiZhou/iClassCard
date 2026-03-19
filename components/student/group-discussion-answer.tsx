@@ -28,12 +28,10 @@ type SearchResult = {
 export function GroupDiscussionAnswer({
   questionId,
   cardId,
-  maxScore,
   onScoreUpdate,
 }: {
   questionId: string;
   cardId: string;
-  maxScore: number;
   onScoreUpdate?: (questionId: string, score: number) => void;
 }) {
   const [members, setMembers] = useState<Member[]>([]);

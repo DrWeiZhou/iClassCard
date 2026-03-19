@@ -200,7 +200,7 @@ function QuestionAnalysis({
       <CardContent className="space-y-3">
         <div className="text-sm space-y-2">
           <div className="whitespace-pre-wrap">{question.title}</div>
-          {question.type === "multiple_choice" && question.options && (
+          {question.type === "multiple_choice" && !!question.options && (
             <div className="space-y-1 pl-2">
               {(question.options as { label: string; text: string }[]).map((opt) => (
                 <div key={opt.label} className="flex gap-2 text-muted-foreground">
