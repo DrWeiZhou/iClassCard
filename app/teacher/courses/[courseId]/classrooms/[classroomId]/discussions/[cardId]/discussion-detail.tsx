@@ -16,7 +16,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { updateSessionScores } from "@/lib/actions/discussion-cards";
 import { toast } from "sonner";
 
@@ -173,14 +173,13 @@ export function DiscussionDetail({
                       </Button>
                       <Button
                         variant="ghost"
-                        size="icon-sm"
+                        size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           setEditingSession(s);
                         }}
-                        title="修改评分"
                       >
-                        <Pencil className="h-3.5 w-3.5" />
+                        确认修改
                       </Button>
                     </div>
                   </td>
