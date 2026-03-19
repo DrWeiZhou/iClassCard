@@ -144,6 +144,11 @@ export function FillBlankAnswer({
               placeholder={`填写第 ${index + 1} 个空`}
               disabled={submitted || isPending}
               className="min-h-[44px]"
+              onFocus={(e) => {
+                // Prevent mobile browser auto-scroll on focus
+                e.preventDefault();
+                e.target.scrollIntoView({ block: "nearest", behavior: "instant" });
+              }}
             />
           </div>
         ))}
