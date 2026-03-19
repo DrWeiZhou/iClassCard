@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { AnswerCard } from "./answer-card";
 
 type Question = {
@@ -68,6 +68,31 @@ export function StudentCardContent({
 
   const answeredCount = scores.size;
 
+  // Hide fixed bottom bar when keyboard is open (for WeChat/QQ WebView compatibility)
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const handleFocusIn = (e: FocusEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        setKeyboardOpen(true);
+      }
+    };
+
+    const handleFocusOut = (e: FocusEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        setKeyboardOpen(false);
+      }
+    };
+
+    document.addEventListener("focusin", handleFocusIn);
+    document.addEventListener("focusout", handleFocusOut);
+
+    return () => {
+      document.removeEventListener("focusin", handleFocusIn);
+      document.removeEventListener("focusout", handleFocusOut);
+    };
+  }, []);
+
   return (
     <div className="relative">
       {/* Card header - static, not sticky */}
@@ -94,23 +119,25 @@ export function StudentCardContent({
         </div>
       )}
 
-      {/* Floating score card - fixed at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 border-t shadow-lg">
-        <div className="max-w-3xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="text-sm">
-              <span className="text-muted-foreground">已答 </span>
-              <span className="font-semibold">{answeredCount}</span>
-              <span className="text-muted-foreground"> / {questions.length} 题</span>
-            </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-muted-foreground text-sm">得分</span>
-              <span className="text-2xl font-bold tabular-nums">{currentScore}</span>
-              <span className="text-sm text-muted-foreground">/ {totalScore}</span>
+      {/* Floating score card - hidden when keyboard is open (WeChat/QQ WebView fix) */}
+      {!keyboardOpen && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 border-t shadow-lg">
+          <div className="max-w-3xl mx-auto px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="text-sm">
+                <span className="text-muted-foreground">已答 </span>
+                <span className="font-semibold">{answeredCount}</span>
+                <span className="text-muted-foreground"> / {questions.length} 题</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-muted-foreground text-sm">得分</span>
+                <span className="text-2xl font-bold tabular-nums">{currentScore}</span>
+                <span className="text-sm text-muted-foreground">/ {totalScore}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -16,6 +16,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "课堂AI学习卡",
   description: "AI驱动的课堂互动学习卡系统",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  // Prevent viewport resize when keyboard opens (helps with fixed elements in WebView)
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({
