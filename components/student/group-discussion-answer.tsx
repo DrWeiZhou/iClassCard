@@ -117,15 +117,20 @@ export function GroupDiscussionAnswer({
   return (
     <div className="space-y-4">
       {/* Search and add members */}
-      <div className="relative">
+      <div>
         <Input
           value={searchText}
           onChange={(e) => handleSearch(e.target.value)}
           placeholder="输入学号或姓名搜索组员"
           className="min-h-[44px]"
         />
+        {isSearching && (
+          <div className="text-xs text-muted-foreground mt-1">
+            搜索中...
+          </div>
+        )}
         {searchResults.length > 0 && (
-          <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-lg border bg-background shadow-lg max-h-[200px] overflow-y-auto">
+          <div className="mt-1 rounded-lg border bg-background shadow-sm max-h-[200px] overflow-y-auto">
             {searchResults.map((student) => (
               <button
                 key={student.id}
@@ -139,11 +144,6 @@ export function GroupDiscussionAnswer({
                 </span>
               </button>
             ))}
-          </div>
-        )}
-        {isSearching && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-            搜索中...
           </div>
         )}
       </div>
