@@ -37,6 +37,7 @@ import { QuestionSelfAssessment } from "./question-self-assessment";
 import { QuestionMultipleChoice } from "./question-multiple-choice";
 import { QuestionFillBlank } from "./question-fill-blank";
 import { QuestionShortAnswer } from "./question-short-answer";
+import { QuestionGroupDiscussion } from "./question-group-discussion";
 import { AddQuestionButton, type QuestionType } from "./add-question-button";
 
 // State shape for a question in the editor
@@ -77,6 +78,7 @@ const TYPE_LABELS: Record<QuestionType, string> = {
   multiple_choice: "多选题",
   fill_blank: "填空题",
   short_answer: "简述题",
+  group_discussion: "分组讨论",
 };
 
 const TYPE_BADGE_VARIANTS: Record<QuestionType, "default" | "secondary" | "outline"> = {
@@ -84,6 +86,7 @@ const TYPE_BADGE_VARIANTS: Record<QuestionType, "default" | "secondary" | "outli
   multiple_choice: "default",
   fill_blank: "outline",
   short_answer: "outline",
+  group_discussion: "secondary",
 };
 
 let clientIdCounter = 0;
@@ -119,6 +122,8 @@ function createDefaultQuestion(type: QuestionType, defaultTemplates?: Record<str
       return { ...base, correctAnswer: "[]", score: 10, gradingPrompt: defaultTemplates?.fill_blank?.scoring ?? "", feedbackPrompt: defaultTemplates?.fill_blank?.feedback ?? "" };
     case "short_answer":
       return { ...base, correctAnswer: "", score: 10, gradingPrompt: defaultTemplates?.short_answer?.scoring ?? "", feedbackPrompt: defaultTemplates?.short_answer?.feedback ?? "" };
+    case "group_discussion":
+      return { ...base, score: 10 };
   }
 }
 
@@ -263,6 +268,13 @@ function SortableQuestionItem({
                 score={question.score}
                 correctAnswer={question.correctAnswer || ""}
                 feedbackPrompt={question.feedbackPrompt || ""}
+                onChange={handleChange}
+              />
+            )}
+            {question.type === "group_discussion" && (
+              <QuestionGroupDiscussion
+                title={question.title}
+                score={question.score}
                 onChange={handleChange}
               />
             )}
