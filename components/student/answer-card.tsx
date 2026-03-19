@@ -44,11 +44,11 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const TYPE_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
-  self_assessment: "secondary",
+  self_assessment: "default",
   multiple_choice: "default",
-  fill_blank: "outline",
-  short_answer: "outline",
-  group_discussion: "secondary",
+  fill_blank: "default",
+  short_answer: "default",
+  group_discussion: "default",
 };
 
 export function AnswerCard({
@@ -68,7 +68,7 @@ export function AnswerCard({
       <CardHeader>
         <div className="flex items-center gap-2 flex-wrap">
           <CardTitle className="text-base">
-            第 {question.order} 题
+            第 {question.order + 1} 题
           </CardTitle>
           <Badge variant={TYPE_VARIANTS[question.type] ?? "secondary"}>
             {TYPE_LABELS[question.type] ?? question.type}
