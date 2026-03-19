@@ -158,3 +158,22 @@ export const promptTemplates = pgTable(
   },
   (t) => [unique().on(t.teacherId, t.questionType, t.templateKind)]
 );
+
+export const groupRatings = pgTable(
+  "group_ratings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    questionId: uuid("question_id")
+      .notNull()
+      .references(() => cardQuestions.id, { onDelete: "cascade" }),
+    raterId: uuid("rater_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    targetStudentId: uuid("target_student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    stars: integer("stars").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.questionId, t.raterId, t.targetStudentId)]
+);
