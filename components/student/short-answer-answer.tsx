@@ -20,10 +20,12 @@ export function ShortAnswerAnswer({
   questionId,
   maxScore,
   existingAnswer,
+  onScoreUpdate,
 }: {
   questionId: string;
   maxScore: number;
   existingAnswer: ExistingAnswer;
+  onScoreUpdate?: (questionId: string, score: number) => void;
 }) {
   const existingText = existingAnswer
     ? (existingAnswer.answer as string)
@@ -90,6 +92,9 @@ export function ShortAnswerAnswer({
         if (scoreRes.ok) {
           const scoreData = await scoreRes.json();
           setScore(scoreData.score);
+          if (scoreData.score !== null && scoreData.score !== undefined) {
+            onScoreUpdate?.(questionId, scoreData.score);
+          }
         }
       } catch {
         // Score failed silently - student can still see submission

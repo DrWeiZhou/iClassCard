@@ -27,12 +27,14 @@ export function MultipleChoiceAnswer({
   correctAnswer,
   maxScore,
   existingAnswer,
+  onScoreUpdate,
 }: {
   questionId: string;
   options: Option[];
   correctAnswer: string | null;
   maxScore: number;
   existingAnswer: ExistingAnswer;
+  onScoreUpdate?: (questionId: string, score: number) => void;
 }) {
   const existingSelected = existingAnswer
     ? (existingAnswer.answer as string[])
@@ -91,6 +93,9 @@ export function MultipleChoiceAnswer({
       setScore(result.score ?? null);
       setAnswerId(result.answerId!);
       toast.success("已提交");
+      if (result.score !== null && result.score !== undefined) {
+        onScoreUpdate?.(questionId, result.score);
+      }
 
       // Trigger AI feedback streaming (scoring is already done server-side)
       try {

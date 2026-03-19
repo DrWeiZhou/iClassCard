@@ -101,7 +101,7 @@ function createDefaultQuestion(type: QuestionType, defaultTemplates?: Record<str
 
   switch (type) {
     case "self_assessment":
-      return { ...base, score: 0 };
+      return { ...base, score: 10 };
     case "multiple_choice":
       return {
         ...base,
@@ -209,11 +209,9 @@ function SortableQuestionItem({
           </div>
           <CardAction>
             <div className="flex items-center gap-1">
-              {question.type !== "self_assessment" && (
-                <span className="text-xs text-muted-foreground mr-1">
-                  {question.score} 分
-                </span>
-              )}
+              <span className="text-xs text-muted-foreground mr-1">
+                {question.score} 分
+              </span>
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -231,6 +229,7 @@ function SortableQuestionItem({
             {question.type === "self_assessment" && (
               <QuestionSelfAssessment
                 title={question.title}
+                score={question.score}
                 onChange={handleChange}
               />
             )}

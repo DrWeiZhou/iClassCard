@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getCardForStudent } from "@/lib/actions/student-data";
-import { AnswerCard } from "@/components/student/answer-card";
+import { StudentCardContent } from "@/components/student/student-card-content";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -33,28 +33,12 @@ export default async function StudentCardPage({
         </Link>
       </div>
 
-      <div>
-        <h2 className="text-xl font-semibold">{card.name}</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          共 {questions.length} 题，总分 {card.totalScore} 分
-        </p>
-      </div>
-
-      {questions.length === 0 ? (
-        <p className="text-muted-foreground text-center py-10">
-          暂无题目
-        </p>
-      ) : (
-        <div className="space-y-4">
-          {questions.map((question) => (
-            <AnswerCard
-              key={question.id}
-              question={question}
-              existingAnswer={answerMap.get(question.id) ?? null}
-            />
-          ))}
-        </div>
-      )}
+      <StudentCardContent
+        cardName={card.name}
+        totalScore={card.totalScore}
+        questions={questions}
+        answerMap={answerMap}
+      />
     </div>
   );
 }

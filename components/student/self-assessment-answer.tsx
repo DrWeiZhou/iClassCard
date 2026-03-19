@@ -16,9 +16,11 @@ type ExistingAnswer = {
 export function SelfAssessmentAnswer({
   questionId,
   existingAnswer,
+  onScoreUpdate,
 }: {
   questionId: string;
   existingAnswer: ExistingAnswer;
+  onScoreUpdate?: (questionId: string, score: number) => void;
 }) {
   const existingData = existingAnswer?.answer as
     | { stars?: number; comment?: string }
@@ -47,6 +49,9 @@ export function SelfAssessmentAnswer({
       }
       setSubmitted(true);
       toast.success("评分已提交");
+      if (result.score !== null && result.score !== undefined) {
+        onScoreUpdate?.(questionId, result.score);
+      }
     });
   }
 

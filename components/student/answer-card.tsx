@@ -49,9 +49,11 @@ const TYPE_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
 export function AnswerCard({
   question,
   existingAnswer,
+  onScoreUpdate,
 }: {
   question: Question;
   existingAnswer: ExistingAnswer | null;
+  onScoreUpdate?: (questionId: string, score: number) => void;
 }) {
   const isAnswered = existingAnswer !== null;
 
@@ -65,7 +67,7 @@ export function AnswerCard({
           <Badge variant={TYPE_VARIANTS[question.type] ?? "secondary"}>
             {TYPE_LABELS[question.type] ?? question.type}
           </Badge>
-          {question.type !== "self_assessment" && question.score > 0 && (
+          {question.score > 0 && (
             <span className="text-xs text-muted-foreground ml-auto">
               {question.score} 分
             </span>
@@ -79,6 +81,7 @@ export function AnswerCard({
           <SelfAssessmentAnswer
             questionId={question.id}
             existingAnswer={existingAnswer}
+            onScoreUpdate={onScoreUpdate}
           />
         )}
 
@@ -91,6 +94,7 @@ export function AnswerCard({
             correctAnswer={question.correctAnswer}
             maxScore={question.score}
             existingAnswer={existingAnswer}
+            onScoreUpdate={onScoreUpdate}
           />
         )}
 
@@ -100,6 +104,7 @@ export function AnswerCard({
             title={question.title}
             maxScore={question.score}
             existingAnswer={existingAnswer}
+            onScoreUpdate={onScoreUpdate}
           />
         )}
 
@@ -108,6 +113,7 @@ export function AnswerCard({
             questionId={question.id}
             maxScore={question.score}
             existingAnswer={existingAnswer}
+            onScoreUpdate={onScoreUpdate}
           />
         )}
 
@@ -117,12 +123,10 @@ export function AnswerCard({
             <span className="text-muted-foreground">得分：</span>
             <span className="font-semibold">
               {existingAnswer.score}
-              {question.type !== "self_assessment" && (
-                <span className="text-muted-foreground font-normal">
-                  {" "}
-                  / {question.score}
-                </span>
-              )}
+              <span className="text-muted-foreground font-normal">
+                {" "}
+                / {question.score}
+              </span>
             </span>
           </div>
         )}

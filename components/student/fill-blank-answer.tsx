@@ -26,11 +26,13 @@ export function FillBlankAnswer({
   title,
   maxScore,
   existingAnswer,
+  onScoreUpdate,
 }: {
   questionId: string;
   title: string;
   maxScore: number;
   existingAnswer: ExistingAnswer;
+  onScoreUpdate?: (questionId: string, score: number) => void;
 }) {
   const blankCount = countBlanks(title);
   const existingValues = existingAnswer
@@ -106,6 +108,9 @@ export function FillBlankAnswer({
         if (scoreRes.ok) {
           const scoreData = await scoreRes.json();
           setScore(scoreData.score);
+          if (scoreData.score !== null && scoreData.score !== undefined) {
+            onScoreUpdate?.(questionId, scoreData.score);
+          }
         }
       } catch {
         // Score failed silently - student can still see submission

@@ -49,10 +49,11 @@ export async function submitAnswer(
     score = isCorrect ? question.score : 0;
   }
 
-  // Self-assessment: score is the star rating (stored directly, no point value)
+  // Self-assessment: score proportional to max score (e.g., 5 stars on 10-point = 10)
   if (question.type === "self_assessment") {
     const sa = answer as { stars?: number; comment?: string };
-    score = sa.stars ?? 0;
+    const starCount = sa.stars ?? 0;
+    score = Math.round(starCount * (question.score / 5));
   }
 
   const [result] = await db

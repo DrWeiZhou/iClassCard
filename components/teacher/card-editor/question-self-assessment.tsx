@@ -10,9 +10,11 @@ export type SelfAssessmentData = {
 
 export function QuestionSelfAssessment({
   title,
+  score,
   onChange,
 }: {
   title: string;
+  score: number;
   onChange: (data: Partial<SelfAssessmentData>) => void;
 }) {
   return (
@@ -27,9 +29,16 @@ export function QuestionSelfAssessment({
       </div>
       <div className="space-y-2">
         <Label>分值</Label>
-        <Input value={0} disabled className="w-24" />
+        <Input
+          type="number"
+          min={0}
+          max={100}
+          value={score}
+          onChange={(e) => onChange({ score: Math.max(0, parseInt(e.target.value) || 0) })}
+          className="w-24"
+        />
         <p className="text-xs text-muted-foreground">
-          自我评测类型的分值固定为 0 分
+          学生按 1-5 星自评，得分按比例换算
         </p>
       </div>
     </div>
