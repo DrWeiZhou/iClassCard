@@ -1,24 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Markdown } from "@/components/ui/markdown";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
+import { updateSessionScores } from "@/lib/actions/discussion-cards";
+import { toast } from "sonner";
 
 type DiscussionCard = {
   id: string;
@@ -70,6 +70,7 @@ export function DiscussionDetail({
 }) {
   const router = useRouter();
   const [viewingSession, setViewingSession] = useState<Session | null>(null);
+  const [editingSession, setEditingSession] = useState<Session | null>(null);
 
   const completedCount = sessions.filter(
     (s) => s.session.status === "completed"
@@ -159,16 +160,29 @@ export function DiscussionDetail({
                     {s.session.totalScore ?? "-"}
                   </td>
                   <td className="px-4 py-2 text-center">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setViewingSession(s);
-                      }}
-                    >
-                      查看对话
-                    </Button>
+                    <div className="flex items-center justify-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setViewingSession(s);
+                        }}
+                      >
+                        查看对话
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingSession(s);
+                        }}
+                        title="修改评分"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -177,6 +191,7 @@ export function DiscussionDetail({
         </div>
       )}
 
+      {/* View conversation dialog */}
       <Dialog
         open={viewingSession !== null}
         onOpenChange={(open) => {
@@ -208,7 +223,11 @@ export function DiscussionDetail({
                           : "bg-muted"
                       }`}
                     >
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                      {msg.role === "assistant" ? (
+                        <Markdown>{msg.content}</Markdown>
+                      ) : (
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -217,15 +236,129 @@ export function DiscussionDetail({
                   <p className="text-xs font-medium text-muted-foreground mb-1">
                     AI 总评
                   </p>
-                  <p className="text-sm whitespace-pre-wrap">
-                    {viewingSession.session.aiSummary}
-                  </p>
+                  <div className="text-sm">
+                    <Markdown>{viewingSession.session.aiSummary}</Markdown>
+                  </div>
                 </div>
               )}
             </div>
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* Edit scores dialog */}
+      {editingSession && (
+        <EditScoresDialog
+          session={editingSession}
+          card={card}
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) setEditingSession(null);
+          }}
+        />
+      )}
     </>
+  );
+}
+
+function EditScoresDialog({
+  session,
+  card,
+  open,
+  onOpenChange,
+}: {
+  session: Session;
+  card: DiscussionCard;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [participation, setParticipation] = useState(
+    session.session.participationScore ?? 0
+  );
+  const [attitude, setAttitude] = useState(
+    session.session.attitudeScore ?? 0
+  );
+  const [ability, setAbility] = useState(
+    session.session.abilityScore ?? 0
+  );
+  const [emotion, setEmotion] = useState(
+    session.session.emotionScore ?? 0
+  );
+  const [innovation, setInnovation] = useState(
+    session.session.innovationScore ?? 0
+  );
+  const [isPending, startTransition] = useTransition();
+
+  const total = participation + attitude + ability + emotion + innovation;
+
+  const fields = [
+    { label: "学习参与度", value: participation, set: setParticipation, max: card.participationMaxScore },
+    { label: "学习态度", value: attitude, set: setAttitude, max: card.attitudeMaxScore },
+    { label: "学习能力", value: ability, set: setAbility, max: card.abilityMaxScore },
+    { label: "学习情感", value: emotion, set: setEmotion, max: card.emotionMaxScore },
+    { label: "创新能力", value: innovation, set: setInnovation, max: card.innovationMaxScore },
+  ];
+
+  function handleSave() {
+    startTransition(async () => {
+      const result = await updateSessionScores(session.session.id, {
+        participationScore: participation,
+        attitudeScore: attitude,
+        abilityScore: ability,
+        emotionScore: emotion,
+        innovationScore: innovation,
+        totalScore: total,
+      });
+      if ("error" in result) {
+        toast.error(result.error);
+      } else {
+        toast.success("评分已更新");
+        onOpenChange(false);
+      }
+    });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>
+            修改评分 — {session.studentName}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          {fields.map(({ label, value, set, max }) => (
+            <div key={label} className="flex items-center gap-3">
+              <Label className="w-20 shrink-0 text-right text-xs">
+                {label}
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                max={max}
+                value={value}
+                onChange={(e) => set(parseInt(e.target.value) || 0)}
+                className="w-20"
+              />
+              <span className="text-xs text-muted-foreground">/ {max}</span>
+            </div>
+          ))}
+          <div className="flex items-center gap-3 pt-2 border-t">
+            <Label className="w-20 shrink-0 text-right text-sm font-medium">
+              总分
+            </Label>
+            <span className="text-sm font-medium">{total}</span>
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" type="button" />}>
+            取消
+          </DialogClose>
+          <Button onClick={handleSave} disabled={isPending}>
+            {isPending ? "保存中..." : "保存"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

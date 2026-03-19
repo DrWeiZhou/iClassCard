@@ -186,6 +186,41 @@ export async function getDiscussionCardDetail(cardId: string) {
   };
 }
 
+export async function updateSessionScores(
+  sessionId: string,
+  scores: {
+    participationScore: number;
+    attitudeScore: number;
+    abilityScore: number;
+    emotionScore: number;
+    innovationScore: number;
+    totalScore: number;
+  }
+) {
+  const user = await getAuthUser();
+  if (!user || user.role !== "teacher") return { error: "未授权" };
+
+  // Verify teacher owns this session's card
+  const [session] = await db
+    .select({ cardId: discussionSessions.cardId })
+    .from(discussionSessions)
+    .where(eq(discussionSessions.id, sessionId));
+  if (!session) return { error: "会话不存在" };
+
+  const ownership = await verifyDiscussionCardOwnership(session.cardId);
+  if (!ownership) return { error: "未授权" };
+
+  await db
+    .update(discussionSessions)
+    .set({ ...scores, updatedAt: new Date() })
+    .where(eq(discussionSessions.id, sessionId));
+
+  revalidatePath(
+    `/teacher/courses/${ownership.courseId}/classrooms/${ownership.classroomId}/discussions/${session.cardId}`
+  );
+  return { success: true };
+}
+
 // Student-side actions
 
 export async function getDiscussionCardForStudent(cardId: string) {
