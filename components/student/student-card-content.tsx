@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { AnswerCard } from "./answer-card";
 
 type Question = {
@@ -68,52 +68,21 @@ export function StudentCardContent({
 
   const answeredCount = scores.size;
 
-  // Track input focus to disable sticky header on mobile (prevents keyboard scroll jump)
-  const [inputFocused, setInputFocused] = useState(false);
-  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
-
-  const handleFocus = useCallback((e: React.FocusEvent) => {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-      if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
-      setInputFocused(true);
-    }
-  }, []);
-
-  const handleBlur = useCallback((e: React.FocusEvent) => {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-      // Delay to avoid flicker when switching between inputs
-      blurTimeoutRef.current = setTimeout(() => setInputFocused(false), 100);
-    }
-  }, []);
-
   return (
-    <div onFocus={handleFocus} onBlur={handleBlur}>
-      {/* Total score bar — sticky unless an input is focused (avoids mobile keyboard scroll jump) */}
-      <div className={`${inputFocused ? "relative" : "sticky top-0"} z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b -mx-4 px-4 py-3 mb-4`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold leading-tight">{cardName}</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              共 {questions.length} 题，已答 {answeredCount} 题
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold tabular-nums">
-              {currentScore}
-              <span className="text-sm font-normal text-muted-foreground">
-                {" "}/ {totalScore}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">当前得分</p>
-          </div>
-        </div>
+    <div className="relative">
+      {/* Card header - static, not sticky */}
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold">{cardName}</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          共 {questions.length} 题，总分 {totalScore} 分
+        </p>
       </div>
 
       {/* Questions */}
       {questions.length === 0 ? (
         <p className="text-muted-foreground text-center py-10">暂无题目</p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 pb-24">
           {questions.map((question) => (
             <AnswerCard
               key={question.id}
@@ -124,6 +93,24 @@ export function StudentCardContent({
           ))}
         </div>
       )}
+
+      {/* Floating score card - fixed at bottom */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 border-t shadow-lg">
+        <div className="max-w-3xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="text-sm">
+              <span className="text-muted-foreground">已答 </span>
+              <span className="font-semibold">{answeredCount}</span>
+              <span className="text-muted-foreground"> / {questions.length} 题</span>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-muted-foreground text-sm">得分</span>
+              <span className="text-2xl font-bold tabular-nums">{currentScore}</span>
+              <span className="text-sm text-muted-foreground">/ {totalScore}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

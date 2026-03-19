@@ -123,11 +123,6 @@ export function ShortAnswerAnswer({
         rows={4}
         disabled={submitted || isPending}
         className="min-h-[100px]"
-        onFocus={(e) => {
-          // Prevent mobile browser auto-scroll on focus
-          e.preventDefault();
-          e.target.scrollIntoView({ block: "nearest", behavior: "instant" });
-        }}
       />
 
       {!submitted && (
