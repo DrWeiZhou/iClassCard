@@ -79,6 +79,24 @@ const QUESTION_TYPES: QuestionTypeConfig[] = [
       },
     ],
   },
+  {
+    key: "discussion",
+    label: "AI交流卡",
+    templates: [
+      {
+        kind: "evaluation",
+        label: "交流评价模板",
+        placeholders: [
+          "{讨论交流主题}",
+          "{学习参与度满分}",
+          "{学习态度满分}",
+          "{学习能力满分}",
+          "{学习情感满分}",
+          "{创新能力满分}",
+        ],
+      },
+    ],
+  },
 ];
 
 function getTemplateContent(

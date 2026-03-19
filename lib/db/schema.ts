@@ -178,3 +178,44 @@ export const groupRatings = pgTable(
   },
   (t) => [unique().on(t.questionId, t.raterId, t.targetStudentId)]
 );
+
+export const discussionCards = pgTable("discussion_cards", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  classroomId: uuid("classroom_id")
+    .notNull()
+    .references(() => classrooms.id, { onDelete: "cascade" }),
+  topic: varchar("topic", { length: 500 }).notNull(),
+  status: varchar("status", { length: 20 }).default("draft").notNull(),
+  participationMaxScore: integer("participation_max_score").default(20).notNull(),
+  attitudeMaxScore: integer("attitude_max_score").default(20).notNull(),
+  abilityMaxScore: integer("ability_max_score").default(20).notNull(),
+  emotionMaxScore: integer("emotion_max_score").default(20).notNull(),
+  innovationMaxScore: integer("innovation_max_score").default(20).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const discussionSessions = pgTable(
+  "discussion_sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    cardId: uuid("card_id")
+      .notNull()
+      .references(() => discussionCards.id, { onDelete: "cascade" }),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, { onDelete: "cascade" }),
+    messages: jsonb("messages").default([]).notNull(),
+    status: varchar("status", { length: 20 }).default("active").notNull(),
+    participationScore: integer("participation_score"),
+    attitudeScore: integer("attitude_score"),
+    abilityScore: integer("ability_score"),
+    emotionScore: integer("emotion_score"),
+    innovationScore: integer("innovation_score"),
+    totalScore: integer("total_score"),
+    aiSummary: text("ai_summary"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.cardId, t.studentId)]
+);

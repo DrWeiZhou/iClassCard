@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -39,35 +39,62 @@ import {
   Pencil,
   Trash2,
   Send,
-  BarChart3,
+  Eye,
   ArrowLeft,
-  MessageCircle,
 } from "lucide-react";
-import { createCard, deleteCard, publishCard } from "@/lib/actions/cards";
+import {
+  createDiscussionCard,
+  updateDiscussionCard,
+  deleteDiscussionCard,
+  publishDiscussionCard,
+} from "@/lib/actions/discussion-cards";
 import { toast } from "sonner";
 
-type LearningCard = {
+type DiscussionCard = {
   id: string;
   classroomId: string;
-  name: string;
+  topic: string;
   status: string;
-  totalScore: number;
+  participationMaxScore: number;
+  attitudeMaxScore: number;
+  abilityMaxScore: number;
+  emotionMaxScore: number;
+  innovationMaxScore: number;
   createdAt: Date;
   updatedAt: Date;
 };
 
-export function CardList({
+type FormData = {
+  topic: string;
+  participationMaxScore: number;
+  attitudeMaxScore: number;
+  abilityMaxScore: number;
+  emotionMaxScore: number;
+  innovationMaxScore: number;
+};
+
+const defaultFormData: FormData = {
+  topic: "",
+  participationMaxScore: 20,
+  attitudeMaxScore: 20,
+  abilityMaxScore: 20,
+  emotionMaxScore: 20,
+  innovationMaxScore: 20,
+};
+
+export function DiscussionCardList({
   cards,
   courseId,
   classroomId,
   classroomName,
 }: {
-  cards: LearningCard[];
+  cards: DiscussionCard[];
   courseId: string;
   classroomId: string;
   classroomName: string;
 }) {
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingCard, setEditingCard] = useState<DiscussionCard | null>(null);
   const router = useRouter();
 
   return (
@@ -84,109 +111,97 @@ export function CardList({
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h2 className="text-lg font-medium">
-            {classroomName} - 学习卡
+            {classroomName} - AI交流卡
             <span className="ml-2 text-sm text-muted-foreground">
               ({cards.length} 张)
             </span>
           </h2>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() =>
-              router.push(
-                `/teacher/courses/${courseId}/classrooms/${classroomId}/discussions`
-              )
-            }
-          >
-            <MessageCircle className="mr-1 h-4 w-4" />
-            AI交流卡
-          </Button>
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-1 h-4 w-4" />
-            新建学习卡
-          </Button>
-        </div>
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="mr-1 h-4 w-4" />
+          新建交流卡
+        </Button>
       </div>
 
       {cards.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
-          暂无学习卡，请点击&quot;新建学习卡&quot;添加
+          暂无AI交流卡，请点击&quot;新建交流卡&quot;添加
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
-            <CardItem
+            <DiscussionCardItem
               key={card.id}
               card={card}
               courseId={courseId}
               classroomId={classroomId}
+              onEdit={setEditingCard}
             />
           ))}
         </div>
       )}
 
-      <CreateCardDialog
+      <DiscussionFormDialog
+        mode="create"
         classroomId={classroomId}
-        defaultName={classroomName}
         open={createOpen}
         onOpenChange={setCreateOpen}
+      />
+
+      <DiscussionFormDialog
+        mode="edit"
+        classroomId={classroomId}
+        card={editingCard ?? undefined}
+        open={editingCard !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditingCard(null);
+        }}
       />
     </>
   );
 }
 
-function CardItem({
+function DiscussionCardItem({
   card,
   courseId,
   classroomId,
+  onEdit,
 }: {
-  card: LearningCard;
+  card: DiscussionCard;
   courseId: string;
   classroomId: string;
+  onEdit: (card: DiscussionCard) => void;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const isDraft = card.status === "draft";
+  const totalMaxScore =
+    card.participationMaxScore +
+    card.attitudeMaxScore +
+    card.abilityMaxScore +
+    card.emotionMaxScore +
+    card.innovationMaxScore;
 
   function handleDelete() {
     startTransition(async () => {
-      const result = await deleteCard(card.id);
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success("学习卡已删除");
-      }
+      const result = await deleteDiscussionCard(card.id);
+      if (result.error) toast.error(result.error);
+      else toast.success("交流卡已删除");
     });
   }
 
   function handlePublish() {
     startTransition(async () => {
-      const result = await publishCard(card.id);
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success("学习卡已发放");
-      }
+      const result = await publishDiscussionCard(card.id);
+      if (result.error) toast.error(result.error);
+      else toast.success("交流卡已发放");
     });
-  }
-
-  function handleEdit() {
-    router.push(
-      `/teacher/courses/${courseId}/classrooms/${classroomId}/cards/${card.id}/edit`
-    );
-  }
-
-  function handleAnalysis() {
-    router.push(
-      `/teacher/courses/${courseId}/classrooms/${classroomId}/cards/${card.id}/analysis`
-    );
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{card.name}</CardTitle>
+        <CardTitle className="text-base line-clamp-2">{card.topic}</CardTitle>
         <CardDescription>
           <Badge
             variant={isDraft ? "secondary" : "default"}
@@ -198,7 +213,7 @@ function CardItem({
           >
             {isDraft ? "草稿" : "已发放"}
           </Badge>
-          <span className="ml-2">总分: {card.totalScore}</span>
+          <span className="ml-2">满分: {totalMaxScore}</span>
         </CardDescription>
         <CardAction>
           <div className="flex items-center gap-1">
@@ -206,7 +221,7 @@ function CardItem({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                onClick={handleEdit}
+                onClick={() => onEdit(card)}
                 disabled={isPending}
                 title="编辑"
               >
@@ -217,6 +232,13 @@ function CardItem({
         </CardAction>
       </CardHeader>
       <CardContent>
+        <div className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <span>参与度: {card.participationMaxScore}分</span>
+          <span>态度: {card.attitudeMaxScore}分</span>
+          <span>能力: {card.abilityMaxScore}分</span>
+          <span>情感: {card.emotionMaxScore}分</span>
+          <span>创新: {card.innovationMaxScore}分</span>
+        </div>
         <div className="flex flex-wrap gap-2">
           {isDraft && (
             <>
@@ -237,13 +259,7 @@ function CardItem({
                   <AlertDialogHeader>
                     <AlertDialogTitle>确认发放</AlertDialogTitle>
                     <AlertDialogDescription>
-                      发放后学习卡将不可编辑，学生将可以看到并作答。确定要发放吗？
-                      {card.totalScore !== 100 && (
-                        <span className="mt-2 block text-destructive">
-                          注意：当前总分为{card.totalScore}
-                          分，总分必须为100分才能发放。
-                        </span>
-                      )}
+                      发放后交流卡将不可编辑，学生将可以看到并开始交流。确定要发放吗？
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -272,7 +288,7 @@ function CardItem({
                   <AlertDialogHeader>
                     <AlertDialogTitle>确认删除</AlertDialogTitle>
                     <AlertDialogDescription>
-                      确定要删除学习卡「{card.name}」吗？此操作将同时删除所有题目数据，且不可撤销。
+                      确定要删除交流卡「{card.topic}」吗？此操作不可撤销。
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -292,11 +308,15 @@ function CardItem({
           <Button
             variant="outline"
             size="sm"
-            onClick={handleAnalysis}
+            onClick={() =>
+              router.push(
+                `/teacher/courses/${courseId}/classrooms/${classroomId}/discussions/${card.id}`
+              )
+            }
             disabled={isPending}
           >
-            <BarChart3 className="mr-1.5 h-4 w-4" />
-            分析
+            <Eye className="mr-1.5 h-4 w-4" />
+            详情
           </Button>
         </div>
       </CardContent>
@@ -304,64 +324,138 @@ function CardItem({
   );
 }
 
-function CreateCardDialog({
+function DiscussionFormDialog({
+  mode,
   classroomId,
-  defaultName,
+  card,
   open,
   onOpenChange,
 }: {
+  mode: "create" | "edit";
   classroomId: string;
-  defaultName: string;
+  card?: DiscussionCard;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [name, setName] = useState("");
+  const [formData, setFormData] = useState<FormData>(
+    card
+      ? {
+          topic: card.topic,
+          participationMaxScore: card.participationMaxScore,
+          attitudeMaxScore: card.attitudeMaxScore,
+          abilityMaxScore: card.abilityMaxScore,
+          emotionMaxScore: card.emotionMaxScore,
+          innovationMaxScore: card.innovationMaxScore,
+        }
+      : defaultFormData
+  );
   const [isPending, startTransition] = useTransition();
+
+  // Reset form when card changes
+  const cardId = card?.id;
+  useEffect(() => {
+    if (card) {
+      setFormData({
+        topic: card.topic,
+        participationMaxScore: card.participationMaxScore,
+        attitudeMaxScore: card.attitudeMaxScore,
+        abilityMaxScore: card.abilityMaxScore,
+        emotionMaxScore: card.emotionMaxScore,
+        innovationMaxScore: card.innovationMaxScore,
+      });
+    }
+  }, [cardId]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const cardName = name.trim() || defaultName;
     startTransition(async () => {
-      const result = await createCard(classroomId, cardName);
-      if (result.error) {
+      const result =
+        mode === "create"
+          ? await createDiscussionCard(classroomId, formData)
+          : await updateDiscussionCard(cardId!, formData);
+      if ("error" in result) {
         toast.error(result.error);
       } else {
-        toast.success("学习卡已创建");
-        setName("");
+        toast.success(mode === "create" ? "交流卡已创建" : "交流卡已更新");
+        if (mode === "create") setFormData(defaultFormData);
         onOpenChange(false);
       }
     });
   }
 
+  function handleChange(field: keyof FormData, value: string | number) {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  }
+
+  const scoreFields: { key: keyof FormData; label: string }[] = [
+    { key: "participationMaxScore", label: "学习参与度满分" },
+    { key: "attitudeMaxScore", label: "学习态度满分" },
+    { key: "abilityMaxScore", label: "学习能力满分" },
+    { key: "emotionMaxScore", label: "学习情感满分" },
+    { key: "innovationMaxScore", label: "创新能力满分" },
+  ];
+
   return (
     <Dialog
       open={open}
       onOpenChange={(o) => {
-        if (!o) setName("");
+        if (!o && mode === "create") setFormData(defaultFormData);
         onOpenChange(o);
       }}
     >
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>新建学习卡</DialogTitle>
-          <DialogDescription>请输入学习卡名称</DialogDescription>
+          <DialogTitle>
+            {mode === "create" ? "新建AI交流卡" : "编辑AI交流卡"}
+          </DialogTitle>
+          <DialogDescription>
+            {mode === "create"
+              ? "设置讨论主题和各项评分满分值"
+              : "修改讨论主题和各项评分满分值"}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="card-name">名称</Label>
+            <Label htmlFor="topic">讨论交流主题</Label>
             <Input
-              id="card-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={defaultName}
+              id="topic"
+              value={formData.topic}
+              onChange={(e) => handleChange("topic", e.target.value)}
+              placeholder="请输入讨论交流主题"
+              required
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {scoreFields.map(({ key, label }) => (
+              <div key={key} className="space-y-1">
+                <Label htmlFor={key} className="text-xs">
+                  {label}
+                </Label>
+                <Input
+                  id={key}
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={formData[key] as number}
+                  onChange={(e) =>
+                    handleChange(key, parseInt(e.target.value) || 0)
+                  }
+                />
+              </div>
+            ))}
           </div>
           <DialogFooter>
             <DialogClose render={<Button variant="outline" type="button" />}>
               取消
             </DialogClose>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "创建中..." : "创建"}
+              {isPending
+                ? mode === "create"
+                  ? "创建中..."
+                  : "保存中..."
+                : mode === "create"
+                  ? "创建"
+                  : "保存"}
             </Button>
           </DialogFooter>
         </form>
