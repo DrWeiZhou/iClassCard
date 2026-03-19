@@ -183,35 +183,44 @@ export function DiscussionChat({
     }
   }, [sessionId, isStreaming, sendMessage]);
 
+  // Track whether we've already started saving to avoid duplicate calls
+  const isSavingRef = useRef(false);
+
   // Watch for the end-discussion response to complete
   useEffect(() => {
-    if (!isEnding || isStreaming || messages.length === 0) return;
+    if (!isEnding || isStreaming || messages.length === 0 || isSavingRef.current) return;
 
     const lastMessage = messages[messages.length - 1];
     if (lastMessage.role !== "assistant") return;
 
     const text = getMessageText(lastMessage);
+    // Only proceed if the response has some substance
+    if (text.length < 10) return;
+
+    isSavingRef.current = true;
+
     const parsed = parseScores(text);
-    if (Object.keys(parsed).length >= 5 && sessionId) {
-      const finalScores = {
-        participationScore: parsed.participationScore || 0,
-        attitudeScore: parsed.attitudeScore || 0,
-        abilityScore: parsed.abilityScore || 0,
-        emotionScore: parsed.emotionScore || 0,
-        innovationScore: parsed.innovationScore || 0,
-        totalScore: parsed.totalScore || 0,
-        aiSummary: text,
-      };
+    const finalScores = {
+      participationScore: parsed.participationScore || 0,
+      attitudeScore: parsed.attitudeScore || 0,
+      abilityScore: parsed.abilityScore || 0,
+      emotionScore: parsed.emotionScore || 0,
+      innovationScore: parsed.innovationScore || 0,
+      totalScore: parsed.totalScore || 0,
+      aiSummary: text,
+    };
 
-      const storedMessages = messages.map((m) => ({
-        role: m.role,
-        content: getMessageText(m),
-      }));
+    const storedMessages = messages.map((m) => ({
+      role: m.role,
+      content: getMessageText(m),
+    }));
 
+    if (sessionId) {
       completeSession(sessionId, finalScores, storedMessages).then(
         (result) => {
           if ("error" in result) {
             toast.error(result.error);
+            isSavingRef.current = false;
           } else {
             setIsCompleted(true);
             setScores({
@@ -224,11 +233,8 @@ export function DiscussionChat({
             });
             toast.success("交流已结束，评分已保存");
           }
-          setIsEnding(false);
         }
       );
-    } else {
-      setIsEnding(false);
     }
   }, [isEnding, isStreaming, messages, sessionId]);
 
