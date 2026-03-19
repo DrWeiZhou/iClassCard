@@ -1,22 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useChat } from "@ai-sdk/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Markdown } from "@/components/ui/markdown";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Send, Square, Loader2 } from "lucide-react";
 import {
   getOrCreateSession,
@@ -123,7 +112,11 @@ export function DiscussionChat({
     innovationScore: existingSession?.innovationScore ?? null,
     totalScore: existingSession?.totalScore ?? null,
   });
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Use a ref so the transport body always reads the latest sessionId
+  const sessionIdRef = useRef(sessionId);
+  sessionIdRef.current = sessionId;
 
   const initialMessages =
     existingSession?.status === "completed" ||
@@ -133,11 +126,18 @@ export function DiscussionChat({
         )
       : [];
 
+  // Stable transport — body is a function that reads from ref
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/ai/discussion",
+        body: () => ({ sessionId: sessionIdRef.current }),
+      }),
+    []
+  );
+
   const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api: "/api/ai/discussion",
-      body: { sessionId },
-    }),
+    transport,
     messages: initialMessages,
   });
 
@@ -163,13 +163,14 @@ export function DiscussionChat({
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
-    if (!text || isStreaming || isCompleted || isEnding) return;
+    if (!text || isStreaming || isCompleted || isEnding || !sessionId) return;
     setInput("");
     await sendMessage({ text });
-  }, [input, isStreaming, isCompleted, isEnding, sendMessage]);
+  }, [input, isStreaming, isCompleted, isEnding, sessionId, sendMessage]);
 
   const handleEndDiscussion = useCallback(async () => {
     if (!sessionId || isStreaming) return;
+    setConfirmOpen(false);
     setIsEnding(true);
 
     try {
@@ -237,6 +238,8 @@ export function DiscussionChat({
       handleSend();
     }
   };
+
+  const inputDisabled = isStreaming || isEnding || isCompleted || !sessionId;
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
@@ -324,60 +327,65 @@ export function DiscussionChat({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="输入你的想法..."
+              placeholder={isEnding ? "AI教师评价中..." : "输入你的想法..."}
               className="min-h-[44px] max-h-32 resize-none"
               rows={1}
-              disabled={isStreaming || isEnding}
+              disabled={inputDisabled}
             />
             <Button
               type="button"
               size="icon"
               onClick={handleSend}
-              disabled={!input.trim() || isStreaming || isEnding}
+              disabled={!input.trim() || inputDisabled}
               className="min-h-[44px] min-w-[44px]"
             >
               <Send className="h-4 w-4" />
             </Button>
           </div>
           <div className="mt-2 flex justify-end">
-            <AlertDialog>
-              <AlertDialogTrigger
-                render={
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isStreaming || isEnding || messages.length < 2}
+              onClick={() => setConfirmOpen(true)}
+            >
+              {isEnding ? (
+                <span className="flex items-center gap-1">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  评价中...
+                </span>
+              ) : (
+                <>
+                  <Square className="mr-1.5 h-3.5 w-3.5" />
+                  结束交流
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Confirmation dialog — controlled open state */}
+          {confirmOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="bg-background rounded-lg p-6 max-w-sm mx-4 shadow-lg">
+                <h3 className="text-lg font-semibold">确认结束交流</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  结束后AI教师将给出总体评价和评分，交流将不可继续。确定要结束吗？
+                </p>
+                <div className="flex justify-end gap-2 mt-4">
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={isStreaming || isEnding || messages.length < 2}
-                  />
-                }
-              >
-                {isEnding ? (
-                  <span className="flex items-center gap-1">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    评价中...
-                  </span>
-                ) : (
-                  <>
-                    <Square className="mr-1.5 h-3.5 w-3.5" />
-                    结束交流
-                  </>
-                )}
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>确认结束交流</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    结束后AI教师将给出总体评价和评分，交流将不可继续。确定要结束吗？
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>取消</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleEndDiscussion}>
+                    onClick={() => setConfirmOpen(false)}
+                  >
+                    取消
+                  </Button>
+                  <Button size="sm" onClick={handleEndDiscussion}>
                     确认结束
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

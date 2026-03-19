@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { BookOpen, MapPin, User, Plus, Pencil, Trash2 } from "lucide-react";
+import { BookOpen, MessageCircle, MapPin, User, Plus, Pencil, Trash2 } from "lucide-react";
 import { deleteClassroom } from "@/lib/actions/classrooms";
 import { toast } from "sonner";
 import { ClassroomFormDialogGlobal } from "./classroom-form-dialog-global";
@@ -216,7 +216,7 @@ function ClassroomCardGlobal({
             </div>
           )}
         </div>
-        <div className="mt-3">
+        <div className="mt-3 flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -229,6 +229,19 @@ function ClassroomCardGlobal({
           >
             <BookOpen className="mr-1.5 h-4 w-4" />
             学习卡
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              router.push(
+                `/teacher/courses/${classroom.courseId}/classrooms/${classroom.id}/discussions`
+              )
+            }
+            disabled={isPending}
+          >
+            <MessageCircle className="mr-1.5 h-4 w-4" />
+            AI交流卡
           </Button>
         </div>
       </CardContent>
