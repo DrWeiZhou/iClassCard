@@ -35,6 +35,11 @@ with a block that shows full question content based on type:
       ))}
     </div>
   )}
+  {question.type === "self_assessment" && question.content && (
+    <div className="text-xs text-muted-foreground">
+      学习内容：{question.content}
+    </div>
+  )}
   {(question.type === "fill_blank" || question.type === "short_answer") && question.correctAnswer && (
     <div className="text-xs text-muted-foreground">
       参考答案：{question.correctAnswer}
@@ -337,6 +342,7 @@ import {
 } from "@/lib/db/schema";
 import { eq, and, or, like, avg } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth";
+import { getDeviceType } from "@/lib/utils";
 
 export async function searchCourseStudents(
   cardId: string,
@@ -467,6 +473,7 @@ export async function submitGroupRating(
       studentId: user.id,
       answer: {},
       score: null,
+      deviceType: getDeviceType(),
     });
   }
 
@@ -508,6 +515,7 @@ export async function submitGroupRating(
       studentId: targetStudentId,
       answer: {},
       score: newScore,
+      deviceType: getDeviceType(),
     });
   }
 
@@ -574,12 +582,6 @@ import {
   getGroupRatings,
 } from "@/lib/actions/group-ratings";
 
-type ExistingAnswer = {
-  id: string;
-  answer: unknown;
-  score: number | null;
-} | null;
-
 type Member = {
   id: string;
   studentNo: string;
@@ -598,13 +600,11 @@ export function GroupDiscussionAnswer({
   questionId,
   cardId,
   maxScore,
-  existingAnswer,
   onScoreUpdate,
 }: {
   questionId: string;
   cardId: string;
   maxScore: number;
-  existingAnswer: ExistingAnswer;
   onScoreUpdate?: (questionId: string, score: number) => void;
 }) {
   const [members, setMembers] = useState<Member[]>([]);
@@ -805,7 +805,6 @@ Add rendering branch (after the short_answer block, around line 117):
     questionId={question.id}
     cardId={question.cardId}
     maxScore={question.score}
-    existingAnswer={existingAnswer}
     onScoreUpdate={onScoreUpdate}
   />
 )}
@@ -916,264 +915,11 @@ export async function getGroupDiscussionAnalysis(questionId: string) {
 }
 ```
 
-Also add `inArray` to the drizzle-orm imports at the top.
+Also add `inArray` to the drizzle-orm imports at the top: `import { eq, and, asc, inArray } from "drizzle-orm";`
 
 - [ ] **Step 2: Create group-discussion-analysis.tsx**
 
-Create `components/teacher/analysis/group-discussion-analysis.tsx`:
-```tsx
-"use client";
-
-import { useState, useTransition } from "react";
-import { Button } from "@/components/ui/button";
-import { BarChart3, ChevronUp } from "lucide-react";
-import { getGroupDiscussionAnalysis, type GroupRatingDetail } from "@/lib/actions/analysis";
-
-export function GroupDiscussionAnalysis({
-  questionId,
-  maxScore,
-}: {
-  questionId: string;
-  maxScore: number;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const [data, setData] = useState<GroupRatingDetail[] | null>(null);
-  const [isLoading, startLoading] = useTransition();
-
-  const handleToggle = () => {
-    if (!expanded) {
-      startLoading(async () => {
-        const result = await getGroupDiscussionAnalysis(questionId);
-        if (result) {
-          setData(result.details);
-        }
-      });
-    }
-    setExpanded(!expanded);
-  };
-
-  // Group ratings by target student
-  const grouped = data
-    ? (() => {
-        const map = new Map<
-          string,
-          {
-            name: string;
-            studentNo: string;
-            ratings: { raterName: string; stars: number }[];
-          }
-        >();
-        for (const d of data) {
-          if (!map.has(d.targetStudentId)) {
-            map.set(d.targetStudentId, {
-              name: d.targetStudentName,
-              studentNo: d.targetStudentNo,
-              ratings: [],
-            });
-          }
-          map
-            .get(d.targetStudentId)!
-            .ratings.push({ raterName: d.raterName, stars: d.stars });
-        }
-        return Array.from(map.entries()).map(([id, info]) => {
-          const avg =
-            info.ratings.reduce((s, r) => s + r.stars, 0) /
-            info.ratings.length;
-          const score = Math.round(avg * (maxScore / 5));
-          return { id, ...info, avg, score };
-        });
-      })()
-    : [];
-
-  const ranked = [...grouped].sort((a, b) => b.score - a.score);
-
-  return (
-    <div className="space-y-3">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleToggle}
-        disabled={isLoading}
-        className="w-full"
-      >
-        {expanded ? (
-          <>
-            <ChevronUp className="mr-1.5 h-4 w-4" />
-            收起分析
-          </>
-        ) : isLoading ? (
-          "加载中..."
-        ) : (
-          <>
-            <BarChart3 className="mr-1.5 h-4 w-4" />
-            分析
-          </>
-        )}
-      </Button>
-
-      {expanded && data !== null && (
-        <div className="rounded-lg border bg-muted/10 p-4 space-y-6">
-          {grouped.length === 0 ? (
-            <div className="py-4 text-center text-sm text-muted-foreground">
-              暂无学生互评数据
-            </div>
-          ) : (
-            <>
-              {/* Group details */}
-              <div className="space-y-3">
-                <div className="text-sm font-medium">分组详情</div>
-                {grouped.map((student) => (
-                  <div
-                    key={student.id}
-                    className="rounded-lg border p-3 space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="font-medium text-sm">
-                          {student.name}
-                        </span>
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          {student.studentNo}
-                        </span>
-                      </div>
-                      <div className="text-sm">
-                        <span className="font-bold">{student.score}</span>
-                        <span className="text-muted-foreground">
-                          /{maxScore} 分
-                        </span>
-                        <span className="ml-2 text-yellow-500">
-                          ★ {student.avg.toFixed(1)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {student.ratings.map((r, i) => (
-                        <span
-                          key={i}
-                          className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs"
-                        >
-                          {r.raterName}
-                          <span className="text-yellow-500">
-                            {"★".repeat(r.stars)}
-                          </span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Class ranking */}
-              <div className="space-y-2">
-                <div className="text-sm font-medium">全班排名</div>
-                <div className="rounded-lg border overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="px-3 py-2 text-left font-medium">
-                          排名
-                        </th>
-                        <th className="px-3 py-2 text-left font-medium">
-                          姓名
-                        </th>
-                        <th className="px-3 py-2 text-left font-medium">
-                          学号
-                        </th>
-                        <th className="px-3 py-2 text-right font-medium">
-                          平均星级
-                        </th>
-                        <th className="px-3 py-2 text-right font-medium">
-                          得分
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ranked.map((student, i) => (
-                        <tr key={student.id} className="border-b last:border-0">
-                          <td className="px-3 py-2">{i + 1}</td>
-                          <td className="px-3 py-2 font-medium">
-                            {student.name}
-                          </td>
-                          <td className="px-3 py-2 text-muted-foreground">
-                            {student.studentNo}
-                          </td>
-                          <td className="px-3 py-2 text-right text-yellow-500">
-                            ★ {student.avg.toFixed(1)}
-                          </td>
-                          <td className="px-3 py-2 text-right font-bold">
-                            {student.score}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-```
-
-- [ ] **Step 3: Update analysis-view.tsx for group_discussion**
-
-Add import:
-```typescript
-import { GroupDiscussionAnalysis } from "@/components/teacher/analysis/group-discussion-analysis";
-```
-
-Add to `TYPE_LABELS`:
-```typescript
-group_discussion: "分组讨论",
-```
-
-In `renderAnalysis()`, add case before `default`:
-```typescript
-case "group_discussion":
-  return null; // Handled separately below
-```
-
-In the `QuestionAnalysis` component JSX (around line 213-218), change the expanded block to handle group_discussion separately:
-```tsx
-{expanded && question.type === "group_discussion" ? (
-  <GroupDiscussionAnalysis
-    questionId={question.id}
-    maxScore={question.score}
-  />
-) : expanded ? (
-  <div className="rounded-lg border bg-muted/10 p-4">
-    {renderAnalysis()}
-  </div>
-) : null}
-```
-
-Wait — `GroupDiscussionAnalysis` already has its own expand/collapse. For group discussion, we should render it inline and let its own button handle expand. Actually, looking more carefully, the `QuestionAnalysis` component already has an expand button and calls `renderAnalysis()`. For group_discussion, we should render the `GroupDiscussionAnalysis` component directly as the analysis content (it manages its own data fetching internally, which is different from other types that use the `data` state).
-
-Better approach: just render `GroupDiscussionAnalysis` inside the existing expanded block. Since `GroupDiscussionAnalysis` already has its own data fetching, we don't need the parent's fresh data mechanism for it.
-
-Actually, let me simplify. The `GroupDiscussionAnalysis` component should NOT have its own expand/collapse button. It should just be the content. The parent `QuestionAnalysis` already handles expand/collapse. Let me revise:
-
-Simplify `GroupDiscussionAnalysis` to just render the analysis content (remove the button), and have `renderAnalysis()` return it:
-
-In `renderAnalysis()`, add:
-```typescript
-case "group_discussion":
-  return (
-    <GroupDiscussionAnalysis
-      questionId={question.id}
-      maxScore={question.score}
-    />
-  );
-```
-
-And modify `GroupDiscussionAnalysis` to auto-load data on mount instead of having its own toggle (see revised component in Step 2).
-
-Let me revise Step 2 — the `GroupDiscussionAnalysis` should auto-load and just render content:
-
-**REVISED Step 2**: Create `components/teacher/analysis/group-discussion-analysis.tsx`:
+Create `components/teacher/analysis/group-discussion-analysis.tsx` — this component auto-loads data on mount and renders analysis content (the parent `QuestionAnalysis` handles expand/collapse):
 ```tsx
 "use client";
 
@@ -1322,16 +1068,19 @@ export function GroupDiscussionAnalysis({
 }
 ```
 
-- [ ] **Step 4: Update analysis-view.tsx**
+- [ ] **Step 3: Update analysis-view.tsx for group_discussion**
 
-Add import at top:
+Add import:
 ```typescript
 import { GroupDiscussionAnalysis } from "@/components/teacher/analysis/group-discussion-analysis";
 ```
 
-Add `group_discussion: "分组讨论"` to `TYPE_LABELS`.
+Add to `TYPE_LABELS`:
+```typescript
+group_discussion: "分组讨论",
+```
 
-Add case in `renderAnalysis()`:
+In `renderAnalysis()`, add case before `default`:
 ```typescript
 case "group_discussion":
   return (
@@ -1342,12 +1091,12 @@ case "group_discussion":
   );
 ```
 
-- [ ] **Step 5: Verify build**
+- [ ] **Step 4: Verify build**
 
 Run: `npm run lint && npm run build`
 Expected: No errors
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add components/teacher/analysis/group-discussion-analysis.tsx lib/actions/analysis.ts app/teacher/courses/\[courseId\]/classrooms/\[classroomId\]/cards/\[cardId\]/analysis/analysis-view.tsx
