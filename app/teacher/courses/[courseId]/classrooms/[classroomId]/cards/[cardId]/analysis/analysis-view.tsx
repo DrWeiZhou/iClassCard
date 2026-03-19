@@ -94,16 +94,18 @@ function SelfAssessmentStats({ answers }: { answers: AnalysisData["answers"] }) 
       {comments.length > 0 && (
         <div className="space-y-1">
           <div className="text-sm font-medium">学生评语（{comments.length} 条）</div>
-          <div className="max-h-[200px] space-y-1 overflow-y-auto rounded-lg border bg-muted/30 p-2">
-            {comments.map((comment, i) => (
-              <div
-                key={i}
-                className="rounded bg-background px-2 py-1 text-sm"
-              >
-                {comment}
-              </div>
-            ))}
-          </div>
+          <ShortAnswerDanmaku
+            correctAnswer={null}
+            answers={answers
+              .filter((a) => {
+                const d = a.answer as { comment?: string } | null;
+                return d && typeof d.comment === "string" && d.comment.trim();
+              })
+              .map((a) => ({
+                ...a,
+                answer: (a.answer as { comment: string }).comment.trim(),
+              }))}
+          />
         </div>
       )}
     </div>
@@ -187,7 +189,29 @@ function QuestionAnalysis({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="text-sm">{question.title}</div>
+        <div className="text-sm space-y-2">
+          <div className="whitespace-pre-wrap">{question.title}</div>
+          {question.type === "multiple_choice" && question.options && (
+            <div className="space-y-1 pl-2">
+              {(question.options as { label: string; text: string }[]).map((opt) => (
+                <div key={opt.label} className="flex gap-2 text-muted-foreground">
+                  <span className="font-medium">{opt.label}.</span>
+                  <span>{opt.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {question.type === "self_assessment" && question.content && (
+            <div className="text-xs text-muted-foreground">
+              学习内容：{question.content}
+            </div>
+          )}
+          {(question.type === "fill_blank" || question.type === "short_answer") && question.correctAnswer && (
+            <div className="text-xs text-muted-foreground">
+              参考答案：{question.correctAnswer}
+            </div>
+          )}
+        </div>
         <Button
           variant="outline"
           size="sm"
