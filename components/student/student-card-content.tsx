@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { AnswerCard } from "./answer-card";
 
 type Question = {
@@ -68,10 +68,28 @@ export function StudentCardContent({
 
   const answeredCount = scores.size;
 
+  // Track input focus to disable sticky header on mobile (prevents keyboard scroll jump)
+  const [inputFocused, setInputFocused] = useState(false);
+  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const handleFocus = useCallback((e: React.FocusEvent) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+      setInputFocused(true);
+    }
+  }, []);
+
+  const handleBlur = useCallback((e: React.FocusEvent) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      // Delay to avoid flicker when switching between inputs
+      blurTimeoutRef.current = setTimeout(() => setInputFocused(false), 100);
+    }
+  }, []);
+
   return (
-    <div>
-      {/* Sticky total score bar */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b -mx-4 px-4 py-3 mb-4">
+    <div onFocus={handleFocus} onBlur={handleBlur}>
+      {/* Total score bar — sticky unless an input is focused (avoids mobile keyboard scroll jump) */}
+      <div className={`${inputFocused ? "relative" : "sticky top-0"} z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b -mx-4 px-4 py-3 mb-4`}>
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold leading-tight">{cardName}</h2>

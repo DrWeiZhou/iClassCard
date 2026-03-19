@@ -2,6 +2,7 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Markdown } from "@/components/ui/markdown";
 import { SelfAssessmentAnswer } from "./self-assessment-answer";
 import { MultipleChoiceAnswer } from "./multiple-choice-answer";
 import { FillBlankAnswer } from "./fill-blank-answer";
@@ -135,9 +136,7 @@ export function AnswerCard({
         {isAnswered && existingAnswer.aiFeedback && (
           <div className="rounded-lg bg-muted/50 p-3 text-sm">
             <p className="font-medium text-muted-foreground mb-1">AI 反馈：</p>
-            <div className="whitespace-pre-wrap break-words">
-              {existingAnswer.aiFeedback}
-            </div>
+            <Markdown>{existingAnswer.aiFeedback}</Markdown>
           </div>
         )}
       </CardContent>

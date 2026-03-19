@@ -8,6 +8,7 @@ import { getDeviceType } from "@/lib/utils";
 import { toast } from "sonner";
 import { Check, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Markdown } from "@/components/ui/markdown";
 
 type Option = {
   label: string;
@@ -203,9 +204,7 @@ export function MultipleChoiceAnswer({
             )}
           </p>
           {feedbackText && (
-            <div className="whitespace-pre-wrap break-words overflow-y-auto max-h-[300px]">
-              {feedbackText}
-            </div>
+            <Markdown>{feedbackText}</Markdown>
           )}
         </div>
       )}

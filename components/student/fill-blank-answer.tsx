@@ -8,6 +8,7 @@ import { submitAnswer } from "@/lib/actions/answers";
 import { getDeviceType } from "@/lib/utils";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { Markdown } from "@/components/ui/markdown";
 
 type ExistingAnswer = {
   id: string;
@@ -187,9 +188,7 @@ export function FillBlankAnswer({
             )}
           </p>
           {feedbackText && (
-            <div className="whitespace-pre-wrap break-words overflow-y-auto max-h-[300px]">
-              {feedbackText}
-            </div>
+            <Markdown>{feedbackText}</Markdown>
           )}
         </div>
       )}
