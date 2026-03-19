@@ -172,6 +172,9 @@ export function DiscussionChat({
     if (!sessionId || isStreaming) return;
     setConfirmOpen(false);
     setIsEnding(true);
+    // Record message count BEFORE sending, so we know which response is the eval
+    evalMsgCountRef.current = messages.length;
+    hasStreamedRef.current = false;
 
     try {
       const evalPrompt =
@@ -181,20 +184,36 @@ export function DiscussionChat({
       toast.error("结束交流失败，请重试");
       setIsEnding(false);
     }
-  }, [sessionId, isStreaming, sendMessage]);
+  }, [sessionId, isStreaming, sendMessage, messages.length]);
 
-  // Track whether we've already started saving to avoid duplicate calls
+  // Track the message count when eval was requested, and whether streaming has occurred
+  const evalMsgCountRef = useRef(0);
+  const hasStreamedRef = useRef(false);
   const isSavingRef = useRef(false);
+
+  // Track that streaming has started so we don't fire prematurely
+  useEffect(() => {
+    if (isEnding && isStreaming) {
+      hasStreamedRef.current = true;
+    }
+  }, [isEnding, isStreaming]);
 
   // Watch for the end-discussion response to complete
   useEffect(() => {
-    if (!isEnding || isStreaming || messages.length === 0 || isSavingRef.current) return;
+    if (!isEnding || isStreaming || isSavingRef.current) return;
+    // Don't fire until streaming has actually happened at least once
+    if (!hasStreamedRef.current) return;
 
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage.role !== "assistant") return;
+    // Find the assistant message that came AFTER the eval prompt
+    // evalMsgCountRef.current = messages.length before sendMessage was called
+    // After sendMessage: user msg at index evalMsgCountRef, assistant at evalMsgCountRef+1
+    const evalAssistantIdx = evalMsgCountRef.current + 1;
+    if (messages.length <= evalAssistantIdx) return;
 
-    const text = getMessageText(lastMessage);
-    // Only proceed if the response has some substance
+    const evalMessage = messages[evalAssistantIdx];
+    if (evalMessage.role !== "assistant") return;
+
+    const text = getMessageText(evalMessage);
     if (text.length < 10) return;
 
     isSavingRef.current = true;
