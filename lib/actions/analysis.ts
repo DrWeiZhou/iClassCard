@@ -7,8 +7,10 @@ import {
   learningCards,
   classrooms,
   courses,
+  groupRatings,
+  students,
 } from "@/lib/db/schema";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, inArray } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth";
 
 export type AnalysisQuestion = {
@@ -120,4 +122,76 @@ export async function getQuestionAnalysis(questionId: string): Promise<AnalysisD
     .where(eq(studentAnswers.questionId, questionId));
 
   return { question, answers };
+}
+
+export type GroupRatingDetail = {
+  targetStudentId: string;
+  targetStudentName: string;
+  targetStudentNo: string;
+  raterId: string;
+  raterName: string;
+  raterStudentNo: string;
+  stars: number;
+};
+
+export async function getGroupDiscussionAnalysis(questionId: string) {
+  const user = await getAuthUser();
+  if (!user || user.role !== "teacher") return null;
+
+  // Verify ownership
+  const [question] = await db
+    .select()
+    .from(cardQuestions)
+    .where(eq(cardQuestions.id, questionId));
+  if (!question) return null;
+
+  const ownerCheck = await db
+    .select({ teacherId: courses.teacherId })
+    .from(learningCards)
+    .innerJoin(classrooms, eq(learningCards.classroomId, classrooms.id))
+    .innerJoin(courses, eq(classrooms.courseId, courses.id))
+    .where(
+      and(eq(learningCards.id, question.cardId), eq(courses.teacherId, user.id))
+    );
+  if (ownerCheck.length === 0) return null;
+
+  // Get all ratings with student names
+  // We need to alias the students table for rater and target
+  const ratings = await db
+    .select({
+      targetStudentId: groupRatings.targetStudentId,
+      raterId: groupRatings.raterId,
+      stars: groupRatings.stars,
+    })
+    .from(groupRatings)
+    .where(eq(groupRatings.questionId, questionId));
+
+  // Collect all student IDs
+  const studentIds = new Set<string>();
+  for (const r of ratings) {
+    studentIds.add(r.targetStudentId);
+    studentIds.add(r.raterId);
+  }
+
+  // Fetch student info
+  const studentList =
+    studentIds.size > 0
+      ? await db
+          .select({ id: students.id, name: students.name, studentNo: students.studentNo })
+          .from(students)
+          .where(inArray(students.id, Array.from(studentIds)))
+      : [];
+  const studentMap = new Map(studentList.map((s) => [s.id, s]));
+
+  const details: GroupRatingDetail[] = ratings.map((r) => ({
+    targetStudentId: r.targetStudentId,
+    targetStudentName: studentMap.get(r.targetStudentId)?.name ?? "未知",
+    targetStudentNo: studentMap.get(r.targetStudentId)?.studentNo ?? "",
+    raterId: r.raterId,
+    raterName: studentMap.get(r.raterId)?.name ?? "未知",
+    raterStudentNo: studentMap.get(r.raterId)?.studentNo ?? "",
+    stars: r.stars,
+  }));
+
+  return { question, details };
 }

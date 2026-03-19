@@ -15,6 +15,7 @@ import { ArrowLeft, BarChart3, ChevronUp } from "lucide-react";
 import { MultipleChoiceChart } from "@/components/teacher/analysis/multiple-choice-chart";
 import { FillBlankWordCloud } from "@/components/teacher/analysis/fill-blank-wordcloud";
 import { ShortAnswerDanmaku } from "@/components/teacher/analysis/short-answer-danmaku";
+import { GroupDiscussionAnalysis } from "@/components/teacher/analysis/group-discussion-analysis";
 import { getQuestionAnalysis } from "@/lib/actions/analysis";
 import type { AnalysisData } from "@/lib/actions/analysis";
 
@@ -23,6 +24,7 @@ const TYPE_LABELS: Record<string, string> = {
   fill_blank: "填空题",
   short_answer: "简答题",
   self_assessment: "自评题",
+  group_discussion: "分组讨论",
 };
 
 function SelfAssessmentStats({ answers }: { answers: AnalysisData["answers"] }) {
@@ -163,6 +165,13 @@ function QuestionAnalysis({
         );
       case "self_assessment":
         return <SelfAssessmentStats answers={answers} />;
+      case "group_discussion":
+        return (
+          <GroupDiscussionAnalysis
+            questionId={question.id}
+            maxScore={question.score}
+          />
+        );
       default:
         return (
           <div className="py-4 text-center text-sm text-muted-foreground">
