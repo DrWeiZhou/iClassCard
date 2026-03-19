@@ -120,7 +120,11 @@ export function DiscussionDetail({
             </thead>
             <tbody>
               {sessions.map((s) => (
-                <tr key={s.session.id} className="border-b">
+                <tr
+                  key={s.session.id}
+                  className="border-b cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => setViewingSession(s)}
+                >
                   <td className="px-4 py-2">{s.studentNo}</td>
                   <td className="px-4 py-2">{s.studentName}</td>
                   <td className="px-4 py-2">
@@ -158,7 +162,10 @@ export function DiscussionDetail({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setViewingSession(s)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setViewingSession(s);
+                      }}
                     >
                       查看对话
                     </Button>
