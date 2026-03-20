@@ -62,6 +62,7 @@ export default async function StatsPage({
                           ? "default"
                           : "secondary"
                       }
+                      className="w-[5.5rem] justify-center"
                     >
                       {student.answeredCount}/{student.totalQuestions} 题已答
                     </Badge>
