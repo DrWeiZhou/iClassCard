@@ -11,7 +11,7 @@ const navItems = [
   { href: "/teacher/courses", label: "课程管理", icon: BookOpen },
   { href: "/teacher/classrooms", label: "课堂管理", icon: CalendarDays },
   { href: "/teacher/models", label: "模型管理", icon: BrainCircuit },
-  { href: "/teacher/templates", label: "模板维护", icon: FileText },
+  { href: "/teacher/templates", label: "设置与模板维护", icon: FileText },
   { href: "/teacher/profile", label: "个人信息", icon: User },
 ];
 

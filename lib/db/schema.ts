@@ -18,6 +18,7 @@ export const teachers = pgTable("teachers", {
   major: varchar("major", { length: 100 }).notNull(),
   phone: varchar("phone", { length: 20 }).notNull().unique(),
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  ratingSettings: jsonb("rating_settings"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

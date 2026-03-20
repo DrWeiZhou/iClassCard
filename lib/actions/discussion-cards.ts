@@ -12,6 +12,7 @@ import {
 import { eq, and, asc } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { getRatingSettingsByTeacherId } from "@/lib/actions/templates";
 
 async function verifyClassroomAccess(classroomId: string) {
   const user = await getAuthUser();
@@ -228,7 +229,7 @@ export async function getDiscussionCardForStudent(cardId: string) {
   if (!user || user.role !== "student") return null;
 
   const cardResult = await db
-    .select({ card: discussionCards })
+    .select({ card: discussionCards, teacherId: courses.teacherId })
     .from(discussionCards)
     .innerJoin(classrooms, eq(discussionCards.classroomId, classrooms.id))
     .innerJoin(courses, eq(classrooms.courseId, courses.id))
@@ -258,7 +259,17 @@ export async function getDiscussionCardForStudent(cardId: string) {
       )
     );
 
-  return { card: cardResult[0].card, session: session ?? null };
+  const ratingSettings = await getRatingSettingsByTeacherId(cardResult[0].teacherId);
+
+  return {
+    card: cardResult[0].card,
+    session: session ?? null,
+    ratingSettings: {
+      high: ratingSettings.discussionHigh,
+      mid: ratingSettings.discussionMid,
+      low: ratingSettings.discussionLow,
+    },
+  };
 }
 
 export async function getOrCreateSession(cardId: string) {

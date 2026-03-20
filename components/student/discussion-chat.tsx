@@ -92,9 +92,11 @@ function storedToUIMessages(stored: StoredMessage[]): UIMessage[] {
 export function DiscussionChat({
   card,
   existingSession,
+  ratingSettings,
 }: {
   card: DiscussionCard;
   existingSession: Session | null;
+  ratingSettings?: { high: [number, number]; mid: [number, number]; low: [number, number] };
 }) {
   const [sessionId, setSessionId] = useState<string | null>(
     existingSession?.id ?? null
@@ -298,6 +300,20 @@ export function DiscussionChat({
             </Badge>
             <Badge>总分: {scores.totalScore}</Badge>
           </div>
+          {(() => {
+            if (!ratingSettings || scores.totalScore == null) return null;
+            const maxTotal = card.participationMaxScore + card.attitudeMaxScore + card.abilityMaxScore + card.emotionMaxScore + card.innovationMaxScore;
+            const pct = maxTotal > 0 ? Math.round(((scores.totalScore as number) / maxTotal) * 100) : 0;
+            let level: string | null = null;
+            if (pct >= ratingSettings.high[0] && pct <= ratingSettings.high[1]) level = "高级";
+            else if (pct >= ratingSettings.mid[0] && pct <= ratingSettings.mid[1]) level = "中级";
+            else if (pct >= ratingSettings.low[0] && pct <= ratingSettings.low[1]) level = "初级";
+            return level ? (
+              <p className="text-sm font-medium text-green-600 mt-2">
+                建议您完成{level}个性化测试
+              </p>
+            ) : null;
+          })()}
         </div>
       )}
 

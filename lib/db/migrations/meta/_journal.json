@@ -29,6 +29,13 @@
       "when": 1773931939502,
       "tag": "0003_bumpy_moira_mactaggert",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1773984824316,
+      "tag": "0004_chilly_boomer",
+      "breakpoints": true
     }
   ]
 }

@@ -7,6 +7,7 @@ import {
 } from "@/lib/db/schema";
 import { eq, and, asc, inArray, count } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth";
+import { getRatingSettingsByTeacherId } from "@/lib/actions/templates";
 
 export async function getStudentCourses() {
   const user = await getAuthUser();
@@ -102,6 +103,7 @@ export async function getCardForStudent(cardId: string) {
   const cardResult = await db
     .select({
       card: learningCards,
+      teacherId: courses.teacherId,
     })
     .from(learningCards)
     .innerJoin(classrooms, eq(learningCards.classroomId, classrooms.id))
@@ -116,6 +118,7 @@ export async function getCardForStudent(cardId: string) {
 
   if (cardResult.length === 0) return null;
   const card = cardResult[0].card;
+  const teacherId = cardResult[0].teacherId;
 
   const questions = await db
     .select()
@@ -138,9 +141,12 @@ export async function getCardForStudent(cardId: string) {
       );
   }
 
+  const ratingSettings = await getRatingSettingsByTeacherId(teacherId);
+
   return {
     card,
     questions,
     existingAnswers: cardAnswers,
+    ratingSettings,
   };
 }

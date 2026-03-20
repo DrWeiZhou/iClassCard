@@ -29,16 +29,29 @@ type ExistingAnswer = {
   deviceType: string | null;
 };
 
+function getRecommendation(
+  scorePercent: number,
+  settings?: { high: [number, number]; mid: [number, number]; low: [number, number] }
+): string | null {
+  if (!settings) return null;
+  if (scorePercent >= settings.high[0] && scorePercent <= settings.high[1]) return "高级";
+  if (scorePercent >= settings.mid[0] && scorePercent <= settings.mid[1]) return "中级";
+  if (scorePercent >= settings.low[0] && scorePercent <= settings.low[1]) return "初级";
+  return null;
+}
+
 export function StudentCardContent({
   cardName,
   totalScore,
   questions,
   answerMap,
+  ratingSettings,
 }: {
   cardName: string;
   totalScore: number;
   questions: Question[];
   answerMap: Map<string, ExistingAnswer>;
+  ratingSettings?: { high: [number, number]; mid: [number, number]; low: [number, number] };
 }) {
   // Initialize scores from existing answers
   const [scores, setScores] = useState<Map<string, number>>(() => {
@@ -68,6 +81,9 @@ export function StudentCardContent({
   );
 
   const answeredCount = scores.size;
+
+  const scorePercent = totalScore > 0 ? Math.round((currentScore / totalScore) * 100) : 0;
+  const recommendation = answeredCount > 0 ? getRecommendation(scorePercent, ratingSettings) : null;
 
   // Hide fixed bottom bar when keyboard is open (for WeChat/QQ WebView compatibility)
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -136,6 +152,11 @@ export function StudentCardContent({
                 <span className="text-sm text-muted-foreground">/ {totalScore}</span>
               </div>
             </div>
+            {recommendation && (
+              <p className="text-sm font-medium text-green-600 mt-1">
+                建议完成{recommendation}个性化测试
+              </p>
+            )}
           </div>
         </div>
       )}

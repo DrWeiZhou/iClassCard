@@ -25,7 +25,11 @@ export default async function StudentDiscussionPage({
           返回
         </Link>
       </div>
-      <DiscussionChat card={data.card} existingSession={data.session} />
+      <DiscussionChat
+        card={data.card}
+        existingSession={data.session}
+        ratingSettings={data.ratingSettings}
+      />
     </div>
   );
 }

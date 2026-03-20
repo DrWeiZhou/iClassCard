@@ -14,7 +14,7 @@ export default async function StudentCardPage({
 
   if (!data) notFound();
 
-  const { card, questions, existingAnswers } = data;
+  const { card, questions, existingAnswers, ratingSettings } = data;
 
   // Build a map of questionId -> existing answer
   const answerMap = new Map(
@@ -38,6 +38,11 @@ export default async function StudentCardPage({
         totalScore={card.totalScore}
         questions={questions}
         answerMap={answerMap}
+        ratingSettings={{
+          high: ratingSettings.cardHigh,
+          mid: ratingSettings.cardMid,
+          low: ratingSettings.cardLow,
+        }}
       />
     </div>
   );

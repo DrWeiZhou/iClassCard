@@ -1,0 +1,1 @@
+ALTER TABLE "teachers" ADD COLUMN "rating_settings" jsonb;
