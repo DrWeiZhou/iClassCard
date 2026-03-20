@@ -12,6 +12,7 @@ import {
 } from "@/lib/db/schema";
 import { eq, and, asc, inArray } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth";
+import { courseStudents } from "@/lib/db/schema";
 
 export type AnalysisQuestion = {
   id: string;
@@ -226,4 +227,117 @@ export async function getGroupDiscussionAnalysis(questionId: string) {
   }));
 
   return { question, details };
+}
+
+export async function getCardStudents(cardId: string) {
+  const user = await getAuthUser();
+  if (!user || user.role !== "teacher") return null;
+
+  // Verify ownership and get courseId
+  const cardResult = await db
+    .select({ courseId: courses.id, cardName: learningCards.name })
+    .from(learningCards)
+    .innerJoin(classrooms, eq(learningCards.classroomId, classrooms.id))
+    .innerJoin(courses, eq(classrooms.courseId, courses.id))
+    .where(and(eq(learningCards.id, cardId), eq(courses.teacherId, user.id)));
+
+  if (cardResult.length === 0) return null;
+
+  const { courseId, cardName } = cardResult[0];
+
+  // Get all enrolled students
+  const studentList = await db
+    .select({
+      id: students.id,
+      studentNo: students.studentNo,
+      name: students.name,
+    })
+    .from(courseStudents)
+    .innerJoin(students, eq(courseStudents.studentId, students.id))
+    .where(eq(courseStudents.courseId, courseId));
+
+  // Get answer counts per student for this card
+  const questions = await db
+    .select({ id: cardQuestions.id })
+    .from(cardQuestions)
+    .where(eq(cardQuestions.cardId, cardId));
+
+  const questionIds = questions.map((q) => q.id);
+  let answersByStudent = new Map<string, number>();
+
+  if (questionIds.length > 0) {
+    const answers = await db
+      .select({
+        studentId: studentAnswers.studentId,
+      })
+      .from(studentAnswers)
+      .where(inArray(studentAnswers.questionId, questionIds));
+
+    for (const a of answers) {
+      answersByStudent.set(a.studentId, (answersByStudent.get(a.studentId) ?? 0) + 1);
+    }
+  }
+
+  const totalQuestions = questions.length;
+
+  return {
+    cardName,
+    students: studentList.map((s) => ({
+      ...s,
+      answeredCount: answersByStudent.get(s.id) ?? 0,
+      totalQuestions,
+    })),
+  };
+}
+
+export async function getStudentCardForTeacher(cardId: string, studentId: string) {
+  const user = await getAuthUser();
+  if (!user || user.role !== "teacher") return null;
+
+  // Verify ownership
+  const cardResult = await db
+    .select({ card: learningCards })
+    .from(learningCards)
+    .innerJoin(classrooms, eq(learningCards.classroomId, classrooms.id))
+    .innerJoin(courses, eq(classrooms.courseId, courses.id))
+    .where(and(eq(learningCards.id, cardId), eq(courses.teacherId, user.id)));
+
+  if (cardResult.length === 0) return null;
+  const card = cardResult[0].card;
+
+  // Get student info
+  const [student] = await db
+    .select({ name: students.name, studentNo: students.studentNo })
+    .from(students)
+    .where(eq(students.id, studentId));
+
+  if (!student) return null;
+
+  const questions = await db
+    .select()
+    .from(cardQuestions)
+    .where(eq(cardQuestions.cardId, cardId))
+    .orderBy(asc(cardQuestions.order));
+
+  const questionIds = questions.map((q) => q.id);
+  let cardAnswers: Array<typeof studentAnswers.$inferSelect> = [];
+  if (questionIds.length > 0) {
+    cardAnswers = await db
+      .select()
+      .from(studentAnswers)
+      .where(
+        and(
+          eq(studentAnswers.studentId, studentId),
+          inArray(studentAnswers.questionId, questionIds)
+        )
+      );
+  }
+
+  return {
+    card,
+    questions,
+    existingAnswers: cardAnswers,
+    studentName: student.name,
+    studentNo: student.studentNo,
+  };
 }

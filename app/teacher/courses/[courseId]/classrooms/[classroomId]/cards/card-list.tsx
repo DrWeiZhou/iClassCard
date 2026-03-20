@@ -42,6 +42,7 @@ import {
   BarChart3,
   ArrowLeft,
   MessageCircle,
+  Users,
 } from "lucide-react";
 import { createCard, deleteCard, publishCard } from "@/lib/actions/cards";
 import { toast } from "sonner";
@@ -183,6 +184,12 @@ function CardItem({
     );
   }
 
+  function handleStats() {
+    router.push(
+      `/teacher/courses/${courseId}/classrooms/${classroomId}/cards/${card.id}/stats`
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -297,6 +304,15 @@ function CardItem({
           >
             <BarChart3 className="mr-1.5 h-4 w-4" />
             分析
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleStats}
+            disabled={isPending}
+          >
+            <Users className="mr-1.5 h-4 w-4" />
+            统计
           </Button>
         </div>
       </CardContent>
