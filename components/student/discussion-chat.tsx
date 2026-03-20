@@ -385,7 +385,7 @@ export function DiscussionChat({
           </div>
           <div className="mt-2 flex justify-end">
             <Button
-              variant="outline"
+              variant="destructive"
               size="sm"
               disabled={isStreaming || isEnding || messages.length < 2}
               onClick={() => setConfirmOpen(true)}
@@ -398,7 +398,7 @@ export function DiscussionChat({
               ) : (
                 <>
                   <Square className="mr-1.5 h-3.5 w-3.5" />
-                  结束交流
+                  结束交流提交打分
                 </>
               )}
             </Button>
