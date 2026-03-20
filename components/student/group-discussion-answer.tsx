@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
-import { Star } from "lucide-react";
+import { Star, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getDeviceType } from "@/lib/utils";
 import {
@@ -114,6 +114,10 @@ export function GroupDiscussionAnswer({
     });
   }
 
+  function handleRemoveMember(memberId: string) {
+    setMembers((prev) => prev.filter((m) => m.id !== memberId));
+  }
+
   return (
     <div className="space-y-4">
       {/* Search and add members */}
@@ -159,10 +163,21 @@ export function GroupDiscussionAnswer({
               key={member.id}
               className="flex items-center justify-between rounded-lg border p-3"
             >
-              <div>
-                <div className="text-sm font-medium">{member.name}</div>
-                <div className="text-xs text-muted-foreground">
-                  {member.studentNo}
+              <div className="flex items-center gap-2">
+                {!member.submitted && (
+                  <button
+                    type="button"
+                    className="p-0.5 touch-manipulation"
+                    onClick={() => handleRemoveMember(member.id)}
+                  >
+                    <XCircle className="h-4 w-4 text-red-500" />
+                  </button>
+                )}
+                <div>
+                  <div className="text-sm font-medium">{member.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {member.studentNo}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-0.5">
