@@ -146,17 +146,19 @@ export function StudentCardContent({
                 <span className="font-semibold">{answeredCount}</span>
                 <span className="text-muted-foreground"> / {questions.length} 题</span>
               </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-muted-foreground text-sm">得分</span>
-                <span className="text-2xl font-bold tabular-nums">{currentScore}</span>
-                <span className="text-sm text-muted-foreground">/ {totalScore}</span>
+              <div className="text-right">
+                <div className="flex items-baseline gap-1 justify-end">
+                  <span className="text-muted-foreground text-sm">得分</span>
+                  <span className="text-2xl font-bold tabular-nums">{currentScore}</span>
+                  <span className="text-sm text-muted-foreground">/ {totalScore}</span>
+                </div>
+                {recommendation && (
+                  <p className="text-xs font-medium text-green-600 mt-0.5">
+                    建议完成{recommendation}个性化测试
+                  </p>
+                )}
               </div>
             </div>
-            {recommendation && (
-              <p className="text-sm font-medium text-green-600 mt-1">
-                建议完成{recommendation}个性化测试
-              </p>
-            )}
           </div>
         </div>
       )}
