@@ -164,6 +164,7 @@ export function DiscussionDetail({
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="text-blue-600 hover:text-blue-700"
                         onClick={(e) => {
                           e.stopPropagation();
                           setViewingSession(s);
@@ -174,12 +175,13 @@ export function DiscussionDetail({
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="text-green-600 hover:text-green-700"
                         onClick={(e) => {
                           e.stopPropagation();
                           setEditingSession(s);
                         }}
                       >
-                        确认修改
+                        修改确认
                       </Button>
                     </div>
                   </td>

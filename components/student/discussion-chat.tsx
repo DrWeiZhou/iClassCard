@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Markdown } from "@/components/ui/markdown";
-import { Send, Square, Loader2 } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
 import {
   getOrCreateSession,
   completeSession,
@@ -397,7 +397,6 @@ export function DiscussionChat({
                 </span>
               ) : (
                 <>
-                  <Square className="mr-1.5 h-3.5 w-3.5" />
                   结束交流提交打分
                 </>
               )}
