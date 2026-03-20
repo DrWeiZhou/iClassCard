@@ -23,7 +23,7 @@ export function Sidebar({ className }: { className?: string }) {
       <div className="flex h-14 items-center border-b px-4">
         <Link href="/teacher/courses" className="flex items-center gap-2 font-semibold">
           <GraduationCap className="h-5 w-5" />
-          <span>课堂AI学习卡</span>
+          <span>智慧课堂AI学习本</span>
         </Link>
       </div>
       <ScrollArea className="flex-1 px-2 py-4">

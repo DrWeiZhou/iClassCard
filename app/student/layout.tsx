@@ -11,7 +11,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
   return (
     <div className="min-h-screen flex flex-col">
       <header className="flex h-14 items-center border-b px-4">
-        <h1 className="text-lg font-semibold">课堂AI学习卡</h1>
+        <h1 className="text-lg font-semibold">智慧课堂AI学习本</h1>
         <div className="flex-1" />
         <span className="text-sm text-muted-foreground mr-2">{user.name}</span>
         <form action={logout}>

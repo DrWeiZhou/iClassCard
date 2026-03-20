@@ -6,8 +6,8 @@ export default function Home() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">课堂AI学习卡</h1>
-          <p className="text-muted-foreground">AI驱动的课堂互动学习卡系统</p>
+          <h1 className="text-3xl font-bold">智慧课堂AI学习本</h1>
+          <p className="text-muted-foreground">AI驱动的课堂ICAP学习系统</p>
         </div>
         <div className="grid gap-4">
           <Link href="/login">

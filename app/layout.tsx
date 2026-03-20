@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "课堂AI学习卡",
-  description: "AI驱动的课堂互动学习卡系统",
+  title: "智慧课堂AI学习本",
+  description: "AI驱动的课堂ICAP学习系统",
 };
 
 export const viewport: Viewport = {
