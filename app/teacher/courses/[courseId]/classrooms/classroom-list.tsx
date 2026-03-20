@@ -192,7 +192,7 @@ function ClassroomCard({
             disabled={isPending}
           >
             <BookOpen className="mr-1.5 h-4 w-4" />
-            学习卡
+            AI学习卡
           </Button>
           <Button
             variant="outline"

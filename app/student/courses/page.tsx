@@ -53,69 +53,87 @@ export default async function StudentCoursesPage() {
                 {course.year} {course.semester}
               </span>
             </div>
-            {courseCards.length === 0 && courseDiscussions.length === 0 ? (
-              <p className="text-sm text-muted-foreground pl-6">暂无学习卡</p>
-            ) : (
-              <div className="grid gap-3">
-                {courseCards.map((card) => (
-                  <Link
-                    key={card.cardId}
-                    href={`/student/cards/${card.cardId}`}
-                    className="block"
-                  >
-                    <Card className="transition-colors hover:bg-muted/50" size="sm">
-                      <CardHeader>
-                        <CardTitle>{card.cardName}</CardTitle>
-                        <CardDescription className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {card.classroomDate}
-                        </CardDescription>
-                        <CardAction>
-                          <Badge variant={card.answered ? "default" : "secondary"}>
-                            {card.answered ? "已作答" : "未作答"}
-                          </Badge>
-                        </CardAction>
-                      </CardHeader>
-                    </Card>
-                  </Link>
-                ))}
-                {courseDiscussions.map((dc) => (
-                  <Link
-                    key={dc.cardId}
-                    href={`/student/discussions/${dc.cardId}`}
-                    className="block"
-                  >
-                    <Card className="transition-colors hover:bg-muted/50" size="sm">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-1.5">
-                          <MessageCircle className="h-4 w-4 text-blue-500 shrink-0" />
-                          {dc.topic}
-                        </CardTitle>
-                        <CardDescription className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {dc.classroomDate}
-                        </CardDescription>
-                        <CardAction>
-                          <Badge
-                            variant={
-                              dc.sessionStatus === "completed"
-                                ? "default"
-                                : "secondary"
-                            }
-                          >
-                            {dc.sessionStatus === "completed"
-                              ? `已完成 ${dc.totalScore ?? ""}分`
-                              : dc.sessionStatus === "active"
-                                ? "交流中"
-                                : "未开始"}
-                          </Badge>
-                        </CardAction>
-                      </CardHeader>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            )}
+            {/* AI学习卡 */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground pl-6 flex items-center gap-1.5">
+                <BookOpen className="h-3.5 w-3.5" />
+                AI学习卡
+              </p>
+              {courseCards.length === 0 ? (
+                <p className="text-sm text-muted-foreground pl-6">暂无学习卡</p>
+              ) : (
+                <div className="grid gap-3">
+                  {courseCards.map((card) => (
+                    <Link
+                      key={card.cardId}
+                      href={`/student/cards/${card.cardId}`}
+                      className="block"
+                    >
+                      <Card className="transition-colors hover:bg-muted/50" size="sm">
+                        <CardHeader>
+                          <CardTitle>{card.cardName}</CardTitle>
+                          <CardDescription className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {card.classroomDate}
+                          </CardDescription>
+                          <CardAction>
+                            <Badge variant={card.answered ? "default" : "secondary"}>
+                              {card.answered ? "已作答" : "未作答"}
+                            </Badge>
+                          </CardAction>
+                        </CardHeader>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* AI交流卡 */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground pl-6 flex items-center gap-1.5">
+                <MessageCircle className="h-3.5 w-3.5" />
+                AI交流卡
+              </p>
+              {courseDiscussions.length === 0 ? (
+                <p className="text-sm text-muted-foreground pl-6">暂无交流卡</p>
+              ) : (
+                <div className="grid gap-3">
+                  {courseDiscussions.map((dc) => (
+                    <Link
+                      key={dc.cardId}
+                      href={`/student/discussions/${dc.cardId}`}
+                      className="block"
+                    >
+                      <Card className="transition-colors hover:bg-muted/50" size="sm">
+                        <CardHeader>
+                          <CardTitle>{dc.topic}</CardTitle>
+                          <CardDescription className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {dc.classroomDate}
+                          </CardDescription>
+                          <CardAction>
+                            <Badge
+                              variant={
+                                dc.sessionStatus === "completed"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {dc.sessionStatus === "completed"
+                                ? `已完成 ${dc.totalScore ?? ""}分`
+                                : dc.sessionStatus === "active"
+                                  ? "交流中"
+                                  : "未开始"}
+                            </Badge>
+                          </CardAction>
+                        </CardHeader>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         );
       })}
