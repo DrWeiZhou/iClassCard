@@ -264,17 +264,20 @@ export async function getCardStudents(cardId: string) {
 
   const questionIds = questions.map((q) => q.id);
   let answersByStudent = new Map<string, number>();
+  let scoresByStudent = new Map<string, number>();
 
   if (questionIds.length > 0) {
     const answers = await db
       .select({
         studentId: studentAnswers.studentId,
+        score: studentAnswers.score,
       })
       .from(studentAnswers)
       .where(inArray(studentAnswers.questionId, questionIds));
 
     for (const a of answers) {
       answersByStudent.set(a.studentId, (answersByStudent.get(a.studentId) ?? 0) + 1);
+      scoresByStudent.set(a.studentId, (scoresByStudent.get(a.studentId) ?? 0) + (a.score ?? 0));
     }
   }
 
@@ -286,6 +289,7 @@ export async function getCardStudents(cardId: string) {
       ...s,
       answeredCount: answersByStudent.get(s.id) ?? 0,
       totalQuestions,
+      totalScore: scoresByStudent.get(s.id) ?? null,
     })),
   };
 }

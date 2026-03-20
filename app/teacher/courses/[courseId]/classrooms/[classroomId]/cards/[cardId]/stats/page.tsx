@@ -50,15 +50,22 @@ export default async function StatsPage({
                 <CardTitle className="text-sm">{student.name}</CardTitle>
                 <CardDescription>{student.studentNo}</CardDescription>
                 <CardAction>
-                  <Badge
-                    variant={
-                      student.answeredCount >= student.totalQuestions
-                        ? "default"
-                        : "secondary"
-                    }
-                  >
-                    {student.answeredCount}/{student.totalQuestions} 题已答
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {student.totalScore !== null && (
+                      <span className="text-sm font-semibold text-red-500">
+                        {student.totalScore}分
+                      </span>
+                    )}
+                    <Badge
+                      variant={
+                        student.answeredCount >= student.totalQuestions
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
+                      {student.answeredCount}/{student.totalQuestions} 题已答
+                    </Badge>
+                  </div>
                 </CardAction>
               </CardHeader>
             </Card>
