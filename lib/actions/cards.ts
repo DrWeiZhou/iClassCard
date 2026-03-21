@@ -167,9 +167,10 @@ export async function saveQuestions(
   // Delete all existing questions
   await db.delete(cardQuestions).where(eq(cardQuestions.cardId, cardId));
 
-  // Insert new questions
+  // Insert new questions and get their IDs
+  let insertedQuestions: Array<{ id: string; type: string; title: string }> = [];
   if (questions.length > 0) {
-    await db.insert(cardQuestions).values(
+    insertedQuestions = await db.insert(cardQuestions).values(
       questions.map((q) => ({
         cardId,
         type: q.type,
@@ -182,7 +183,7 @@ export async function saveQuestions(
         gradingPrompt: q.gradingPrompt || null,
         feedbackPrompt: q.feedbackPrompt || null,
       }))
-    );
+    ).returning({ id: cardQuestions.id, type: cardQuestions.type, title: cardQuestions.title });
   }
 
   // Update totalScore on the card
@@ -194,5 +195,11 @@ export async function saveQuestions(
   revalidatePath(
     `/teacher/courses/${courseId}/classrooms/${classroomId}/cards`
   );
-  return { success: true };
+
+  // Return self-assessment question info for AI matching
+  const selfAssessmentQuestions = insertedQuestions
+    .filter((q) => q.type === "self_assessment")
+    .map((q) => ({ id: q.id, title: q.title }));
+
+  return { success: true, classroomId, selfAssessmentQuestions };
 }
