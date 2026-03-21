@@ -46,12 +46,14 @@ export function StudentCardContent({
   questions,
   answerMap,
   ratingSettings,
+  lessonPlanLinks,
 }: {
   cardName: string;
   totalScore: number;
   questions: Question[];
   answerMap: Map<string, ExistingAnswer>;
   ratingSettings?: { high: [number, number]; mid: [number, number]; low: [number, number] };
+  lessonPlanLinks?: Record<string, { lessonPlanId: string; anchorId: string; headingText: string }>;
 }) {
   // Initialize scores from existing answers
   const [scores, setScores] = useState<Map<string, number>>(() => {
@@ -131,6 +133,7 @@ export function StudentCardContent({
               question={question}
               existingAnswer={answerMap.get(question.id) ?? null}
               onScoreUpdate={handleScoreUpdate}
+              lessonPlanLink={lessonPlanLinks?.[question.id] ?? null}
             />
           ))}
         </div>

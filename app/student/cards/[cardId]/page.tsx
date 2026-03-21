@@ -14,7 +14,7 @@ export default async function StudentCardPage({
 
   if (!data) notFound();
 
-  const { card, questions, existingAnswers, ratingSettings } = data;
+  const { card, questions, existingAnswers, ratingSettings, lessonPlanLinks } = data;
 
   // Build a map of questionId -> existing answer
   const answerMap = new Map(
@@ -43,6 +43,7 @@ export default async function StudentCardPage({
           mid: ratingSettings.cardMid,
           low: ratingSettings.cardLow,
         }}
+        lessonPlanLinks={lessonPlanLinks}
       />
     </div>
   );

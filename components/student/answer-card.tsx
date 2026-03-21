@@ -54,10 +54,12 @@ export function AnswerCard({
   question,
   existingAnswer,
   onScoreUpdate,
+  lessonPlanLink,
 }: {
   question: Question;
   existingAnswer: ExistingAnswer | null;
   onScoreUpdate?: (questionId: string, score: number) => void;
+  lessonPlanLink?: { lessonPlanId: string; anchorId: string; headingText: string } | null;
 }) {
   const isAnswered = existingAnswer !== null;
   const isClosed = !!question.closedAt;
@@ -93,6 +95,7 @@ export function AnswerCard({
                 questionId={question.id}
                 existingAnswer={existingAnswer}
                 onScoreUpdate={onScoreUpdate}
+                lessonPlanLink={lessonPlanLink}
               />
             )}
 
