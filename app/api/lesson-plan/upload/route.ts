@@ -47,6 +47,20 @@ function processHtml(rawHtml: string): {
     }
   );
 
+  // Clean up <pre><code> blocks: strip nested <code> tags, convert <br /> to newlines
+  codeProcessed = codeProcessed.replace(
+    /<pre><code>([\s\S]*?)<\/code><\/pre>/gi,
+    (match, content) => {
+      const cleaned = content
+        .replace(/<code>/gi, "")
+        .replace(/<\/code>/gi, "")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<a[^>]*><\/a>/gi, "") // strip empty anchors inside code
+        .trim();
+      return `<pre><code>${cleaned}</code></pre>`;
+    }
+  );
+
   // Inject anchor IDs into headings and extract section info
   const processedHtml = codeProcessed.replace(
     /<(h[1-6])([^>]*)>([\s\S]*?)<\/\1>/gi,
@@ -127,6 +141,41 @@ export async function POST(request: NextRequest) {
     const result = await mammoth.convertToHtml(
       { buffer: Buffer.from(arrayBuffer) },
       {
+        styleMap: [
+          "p[style-name='Source Code'] => pre > code:separator('\\n')",
+          "p[style-name='SourceCode'] => pre > code:separator('\\n')",
+          "r[style-name='NormalTok'] =>",
+          "r[style-name='OperatorTok'] =>",
+          "r[style-name='StringTok'] =>",
+          "r[style-name='BuiltInTok'] =>",
+          "r[style-name='DecValTok'] =>",
+          "r[style-name='KeywordTok'] =>",
+          "r[style-name='CommentTok'] =>",
+          "r[style-name='DataTypeTok'] =>",
+          "r[style-name='FunctionTok'] =>",
+          "r[style-name='ImportTok'] =>",
+          "r[style-name='ControlFlowTok'] =>",
+          "r[style-name='FloatTok'] =>",
+          "r[style-name='CharTok'] =>",
+          "r[style-name='SpecialCharTok'] =>",
+          "r[style-name='VariableTok'] =>",
+          "r[style-name='OtherTok'] =>",
+          "r[style-name='PreprocessorTok'] =>",
+          "r[style-name='ErrorTok'] =>",
+          "r[style-name='AttributeTok'] =>",
+          "r[style-name='ConstantTok'] =>",
+          "r[style-name='BaseNTok'] =>",
+          "r[style-name='AlertTok'] =>",
+          "r[style-name='AnnotationTok'] =>",
+          "r[style-name='RegionMarkerTok'] =>",
+          "r[style-name='InformationTok'] =>",
+          "r[style-name='WarningTok'] =>",
+          "r[style-name='DocumentationTok'] =>",
+          "r[style-name='SpecialStringTok'] =>",
+          "r[style-name='VerbatimStringTok'] =>",
+          "r[style-name='CommentVarTok'] =>",
+          "r[style-name='ExtensionTok'] =>",
+        ],
         convertImage: mammoth.images.imgElement(function (image) {
           return image.read("base64").then(function (imageBuffer) {
             const contentType = image.contentType || "image/png";
