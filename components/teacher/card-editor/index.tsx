@@ -377,6 +377,30 @@ export function CardEditor({
       } else {
         toast.success("保存成功");
         router.refresh();
+
+        // Trigger AI matching for self-assessment questions
+        if (result.selfAssessmentQuestions && result.selfAssessmentQuestions.length > 0 && result.classroomId) {
+          for (const q of result.selfAssessmentQuestions) {
+            if (q.title.trim()) {
+              fetch("/api/lesson-plan/match", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  questionTitle: q.title,
+                  classroomId: result.classroomId,
+                  questionId: q.id,
+                }),
+              }).then(async (res) => {
+                const data = await res.json();
+                if (res.ok && data.matchedHeadingText) {
+                  toast.success(`已匹配教案: ${data.matchedHeadingText}`);
+                }
+              }).catch(() => {
+                // Silently ignore matching errors — non-critical
+              });
+            }
+          }
+        }
       }
     });
   }
