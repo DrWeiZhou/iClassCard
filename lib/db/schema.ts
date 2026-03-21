@@ -96,6 +96,28 @@ export const classrooms = pgTable("classrooms", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const lessonPlans = pgTable("lesson_plans", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  classroomId: uuid("classroom_id")
+    .notNull()
+    .references(() => classrooms.id, { onDelete: "cascade" })
+    .unique(),
+  fileName: varchar("file_name", { length: 200 }).notNull(),
+  htmlContent: text("html_content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const lessonPlanSections = pgTable("lesson_plan_sections", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  lessonPlanId: uuid("lesson_plan_id")
+    .notNull()
+    .references(() => lessonPlans.id, { onDelete: "cascade" }),
+  headingLevel: integer("heading_level").notNull(),
+  headingText: varchar("heading_text", { length: 500 }).notNull(),
+  anchorId: varchar("anchor_id", { length: 200 }).notNull(),
+  sectionOrder: integer("section_order").notNull(),
+});
+
 export const learningCards = pgTable("learning_cards", {
   id: uuid("id").defaultRandom().primaryKey(),
   classroomId: uuid("classroom_id")
@@ -123,6 +145,8 @@ export const cardQuestions = pgTable("card_questions", {
   gradingPrompt: text("grading_prompt"),
   feedbackPrompt: text("feedback_prompt"),
   closedAt: timestamp("closed_at"),
+  matchedSectionId: uuid("matched_section_id")
+    .references(() => lessonPlanSections.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
