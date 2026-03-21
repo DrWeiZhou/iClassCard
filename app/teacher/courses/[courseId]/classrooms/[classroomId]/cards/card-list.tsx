@@ -226,75 +226,75 @@ function CardItem({
       <CardContent>
         <div className="flex flex-wrap gap-2">
           {isDraft && (
-            <>
-              <AlertDialog>
-                <AlertDialogTrigger
-                  render={
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={isPending}
-                    />
-                  }
-                >
-                  <Send className="mr-1.5 h-4 w-4" />
-                  发放
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>确认发放</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      发放后学习卡将不可编辑，学生将可以看到并作答。确定要发放吗？
-                      {card.totalScore !== 100 && (
-                        <span className="mt-2 block text-destructive">
-                          注意：当前总分为{card.totalScore}
-                          分，总分必须为100分才能发放。
-                        </span>
-                      )}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>取消</AlertDialogCancel>
-                    <AlertDialogAction onClick={handlePublish}>
-                      确认发放
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
-              <AlertDialog>
-                <AlertDialogTrigger
-                  render={
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={isPending}
-                    />
-                  }
-                >
-                  <Trash2 className="mr-1.5 h-4 w-4" />
-                  删除
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>确认删除</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      确定要删除学习卡「{card.name}」吗？此操作将同时删除所有题目数据，且不可撤销。
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>取消</AlertDialogCancel>
-                    <AlertDialogAction
-                      variant="destructive"
-                      onClick={handleDelete}
-                    >
-                      删除
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </>
+            <AlertDialog>
+              <AlertDialogTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isPending}
+                  />
+                }
+              >
+                <Send className="mr-1.5 h-4 w-4" />
+                发放
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>确认发放</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    发放后学习卡将不可编辑，学生将可以看到并作答。确定要发放吗？
+                    {card.totalScore !== 100 && (
+                      <span className="mt-2 block text-destructive">
+                        注意：当前总分为{card.totalScore}
+                        分，总分必须为100分才能发放。
+                      </span>
+                    )}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>取消</AlertDialogCancel>
+                  <AlertDialogAction onClick={handlePublish}>
+                    确认发放
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
+
+          <AlertDialog>
+            <AlertDialogTrigger
+              render={
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={isPending}
+                />
+              }
+            >
+              <Trash2 className="mr-1.5 h-4 w-4" />
+              删除
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>确认删除</AlertDialogTitle>
+                <AlertDialogDescription>
+                  确定要删除学习卡「{card.name}」吗？此操作将同时删除所有题目
+                  {!isDraft && "及学生答题记录"}
+                  ，且不可撤销。
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>取消</AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={handleDelete}
+                >
+                  删除
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           <Button
             variant="outline"

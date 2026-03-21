@@ -133,16 +133,12 @@ export async function publishCard(cardId: string) {
   return { success: true };
 }
 
-// Delete a card (verify ownership, only draft cards)
+// Delete a card (verify ownership, cascade deletes questions + student answers)
 export async function deleteCard(cardId: string) {
   const ownership = await verifyCardOwnership(cardId);
   if (!ownership) return { error: "未授权" };
 
-  const { card, courseId, classroomId } = ownership;
-
-  if (card.status === "published") {
-    return { error: "已发放的学习卡不能删除" };
-  }
+  const { courseId, classroomId } = ownership;
 
   await db.delete(learningCards).where(eq(learningCards.id, cardId));
 
