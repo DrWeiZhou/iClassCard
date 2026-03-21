@@ -29,8 +29,26 @@ function processHtml(rawHtml: string): {
 
   let sectionIndex = 0;
 
+  // Convert single-cell tables (1 row, 1 column, no header) to code blocks
+  // Word often represents code blocks as borderless single-cell tables
+  let codeProcessed = rawHtml.replace(
+    /<table[^>]*>\s*<tbody>\s*<tr>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<\/tr>\s*<\/tbody>\s*<\/table>/gi,
+    (match, content) => {
+      // Strip inner HTML tags, preserve line breaks
+      const text = content
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<\/p>\s*<p[^>]*>/gi, "\n")
+        .replace(/<[^>]*>/g, "")
+        .trim();
+      if (text) {
+        return `<pre><code>${text}</code></pre>`;
+      }
+      return match;
+    }
+  );
+
   // Inject anchor IDs into headings and extract section info
-  const processedHtml = rawHtml.replace(
+  const processedHtml = codeProcessed.replace(
     /<(h[1-6])([^>]*)>([\s\S]*?)<\/\1>/gi,
     (match, tag, attrs, content) => {
       const level = parseInt(tag.charAt(1));
@@ -57,7 +75,7 @@ function processHtml(rawHtml: string): {
     allowedTags: sanitizeHtml.defaults.allowedTags.concat([
       "img", "h1", "h2", "h3", "h4", "h5", "h6",
       "table", "thead", "tbody", "tr", "th", "td",
-      "figure", "figcaption", "sup", "sub",
+      "figure", "figcaption", "sup", "sub", "pre", "code",
     ]),
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,

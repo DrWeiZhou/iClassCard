@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Star, BookOpen } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import {
 import { submitAnswer } from "@/lib/actions/answers";
 import { getDeviceType } from "@/lib/utils";
 import { toast } from "sonner";
+import Link from "next/link";
 
 type ExistingAnswer = {
   id: string;
@@ -42,7 +42,6 @@ export function SelfAssessmentAnswer({
   onScoreUpdate?: (questionId: string, score: number) => void;
   lessonPlanLink?: LessonPlanLink;
 }) {
-  const router = useRouter();
   const existingData = existingAnswer?.answer as
     | { stars?: number; comment?: string }
     | undefined;
@@ -54,11 +53,14 @@ export function SelfAssessmentAnswer({
   const [isPending, startTransition] = useTransition();
   const [showDialog, setShowDialog] = useState(false);
 
+  const lessonPlanUrl = lessonPlanLink
+    ? `/lesson-plan/${lessonPlanLink.lessonPlanId}#${lessonPlanLink.anchorId}`
+    : null;
+
   function handleStarClick(rating: number) {
     if (submitted || isPending) return;
 
     setStars(rating);
-    // Auto-submit on star click (includes current comment if any)
     startTransition(async () => {
       const result = await submitAnswer(
         questionId,
@@ -75,24 +77,14 @@ export function SelfAssessmentAnswer({
         onScoreUpdate?.(questionId, result.score);
       }
 
-      // Show dialog for low ratings if lesson plan link exists
       if (rating <= 3 && lessonPlanLink) {
         setShowDialog(true);
       }
     });
   }
 
-  function handleNavigateToLessonPlan() {
-    if (lessonPlanLink) {
-      router.push(
-        `/student/lesson-plan/${lessonPlanLink.lessonPlanId}#${lessonPlanLink.anchorId}`
-      );
-    }
-  }
-
   return (
     <div className="space-y-4">
-      {/* Hint to type comment first */}
       {!submitted && (
         <p className="text-xs text-muted-foreground">
           （先填写自评学习评语再进行评级）
@@ -138,16 +130,14 @@ export function SelfAssessmentAnswer({
       />
 
       {/* Lesson plan link — shown after submission if matched */}
-      {submitted && lessonPlanLink && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleNavigateToLessonPlan}
-          className="text-blue-600 border-blue-200 hover:bg-blue-50"
+      {submitted && lessonPlanUrl && (
+        <Link
+          href={lessonPlanUrl}
+          className="inline-flex items-center gap-1.5 text-sm text-blue-600 border border-blue-200 rounded-md px-3 py-1.5 hover:bg-blue-50 transition-colors"
         >
-          <BookOpen className="mr-1.5 h-4 w-4" />
-          精准教案: {lessonPlanLink.headingText}
-        </Button>
+          <BookOpen className="h-4 w-4" />
+          精准教案: {lessonPlanLink!.headingText}
+        </Link>
       )}
 
       {/* Low score dialog */}
@@ -161,9 +151,16 @@ export function SelfAssessmentAnswer({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>否</AlertDialogCancel>
-            <AlertDialogAction onClick={handleNavigateToLessonPlan}>
-              是
-            </AlertDialogAction>
+            {lessonPlanUrl && (
+              <AlertDialogAction
+                onClick={() => {
+                  setShowDialog(false);
+                  window.location.href = lessonPlanUrl;
+                }}
+              >
+                是
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

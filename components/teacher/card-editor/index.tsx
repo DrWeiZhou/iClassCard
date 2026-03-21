@@ -51,6 +51,11 @@ export type QuestionState = {
   score: number;
   gradingPrompt?: string;
   feedbackPrompt?: string;
+  matchedHeading?: {
+    headingText: string;
+    anchorId: string;
+    lessonPlanId: string;
+  } | null;
 };
 
 type CardData = {
@@ -70,6 +75,9 @@ type CardData = {
     score: number;
     gradingPrompt: string | null;
     feedbackPrompt: string | null;
+    matchedHeadingText: string | null;
+    matchedAnchorId: string | null;
+    matchedLessonPlanId: string | null;
   }>;
 };
 
@@ -138,6 +146,13 @@ function cardDataToQuestions(card: CardData): QuestionState[] {
     score: q.score,
     gradingPrompt: q.gradingPrompt || undefined,
     feedbackPrompt: q.feedbackPrompt || undefined,
+    matchedHeading: q.matchedHeadingText
+      ? {
+          headingText: q.matchedHeadingText,
+          anchorId: q.matchedAnchorId!,
+          lessonPlanId: q.matchedLessonPlanId!,
+        }
+      : null,
   }));
 }
 
@@ -235,6 +250,7 @@ function SortableQuestionItem({
               <QuestionSelfAssessment
                 title={question.title}
                 score={question.score}
+                matchedHeading={question.matchedHeading}
                 onChange={handleChange}
               />
             )}
@@ -394,6 +410,20 @@ export function CardEditor({
                 const data = await res.json();
                 if (res.ok && data.matchedHeadingText) {
                   toast.success(`已匹配教案: ${data.matchedHeadingText}`);
+                  setQuestions((items) =>
+                    items.map((item) =>
+                      item.type === "self_assessment" && item.title === q.title
+                        ? {
+                            ...item,
+                            matchedHeading: {
+                              headingText: data.matchedHeadingText,
+                              anchorId: data.matchedAnchorId,
+                              lessonPlanId: data.matchedLessonPlanId,
+                            },
+                          }
+                        : item
+                    )
+                  );
                 }
               }).catch(() => {
                 // Silently ignore matching errors — non-critical

@@ -84,7 +84,7 @@ export function LessonPlanUpload({
               {plan.sectionCount} 个标题章节
             </p>
           </div>
-          <Link href={`/student/lesson-plan/${plan.id}`} target="_blank">
+          <Link href={`/lesson-plan/${plan.id}`} target="_blank">
             <Button variant="ghost" size="sm" title="预览教案">
               <Eye className="h-4 w-4" />
             </Button>

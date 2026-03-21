@@ -6,6 +6,7 @@ import {
   cardQuestions,
   classrooms,
   courses,
+  lessonPlanSections,
 } from "@/lib/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth";
@@ -85,8 +86,25 @@ export async function getCardWithQuestions(cardId: string) {
 
   const card = ownership.card;
   const questions = await db
-    .select()
+    .select({
+      id: cardQuestions.id,
+      cardId: cardQuestions.cardId,
+      type: cardQuestions.type,
+      order: cardQuestions.order,
+      title: cardQuestions.title,
+      content: cardQuestions.content,
+      options: cardQuestions.options,
+      correctAnswer: cardQuestions.correctAnswer,
+      score: cardQuestions.score,
+      gradingPrompt: cardQuestions.gradingPrompt,
+      feedbackPrompt: cardQuestions.feedbackPrompt,
+      matchedSectionId: cardQuestions.matchedSectionId,
+      matchedHeadingText: lessonPlanSections.headingText,
+      matchedAnchorId: lessonPlanSections.anchorId,
+      matchedLessonPlanId: lessonPlanSections.lessonPlanId,
+    })
     .from(cardQuestions)
+    .leftJoin(lessonPlanSections, eq(cardQuestions.matchedSectionId, lessonPlanSections.id))
     .where(eq(cardQuestions.cardId, cardId))
     .orderBy(asc(cardQuestions.order));
 

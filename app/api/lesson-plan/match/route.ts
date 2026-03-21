@@ -95,10 +95,14 @@ ${headingList}
 
     let matchedSectionId: string | null = null;
     let matchedHeadingText: string | null = null;
+    let matchedAnchorId: string | null = null;
+    let matchedLessonPlanId: string | null = null;
 
     if (index > 0 && index <= sections.length) {
       matchedSectionId = sections[index - 1].id;
       matchedHeadingText = sections[index - 1].headingText;
+      matchedAnchorId = sections[index - 1].anchorId;
+      matchedLessonPlanId = sections[index - 1].lessonPlanId;
     }
 
     // Update the question's matched_section_id
@@ -111,6 +115,8 @@ ${headingList}
       success: true,
       matchedSectionId,
       matchedHeadingText,
+      matchedAnchorId,
+      matchedLessonPlanId,
     });
   } catch (error) {
     console.error("AI matching error:", error);
