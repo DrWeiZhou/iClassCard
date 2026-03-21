@@ -89,8 +89,11 @@ function processHtml(rawHtml: string): {
     }
   );
 
+  // Add lazy loading to all images
+  const lazyHtml = processedHtml.replace(/<img /gi, '<img loading="lazy" ');
+
   // Sanitize HTML: allow standard tags, strip scripts and event handlers
-  const sanitized = sanitizeHtml(processedHtml, {
+  const sanitized = sanitizeHtml(lazyHtml, {
     allowedTags: sanitizeHtml.defaults.allowedTags.concat([
       "img", "h1", "h2", "h3", "h4", "h5", "h6",
       "table", "thead", "tbody", "tr", "th", "td",
@@ -98,7 +101,7 @@ function processHtml(rawHtml: string): {
     ]),
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
-      img: ["src", "alt", "width", "height", "style"],
+      img: ["src", "alt", "width", "height", "style", "loading"],
       h1: ["id"], h2: ["id"], h3: ["id"],
       h4: ["id"], h5: ["id"], h6: ["id"],
       td: ["colspan", "rowspan", "style"],
