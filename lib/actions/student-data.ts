@@ -144,27 +144,38 @@ export async function getCardForStudent(cardId: string) {
   const ratingSettings = await getRatingSettingsByTeacherId(teacherId);
 
   // Build lesson plan link map for self-assessment questions
-  const selfAssessmentQuestions = questions.filter(
-    (q) => q.type === "self_assessment" && q.matchedSectionId
+  const selfAssessmentWithUrl = questions.filter(
+    (q) => q.type === "self_assessment" && q.matchedLessonPlanUrl
   );
 
   const lessonPlanLinks: Record<
     string,
-    { lessonPlanId: string; anchorId: string; headingText: string }
+    { url: string; headingText: string }
   > = {};
 
-  for (const q of selfAssessmentQuestions) {
-    if (!q.matchedSectionId) continue;
-    const [section] = await db
-      .select({
-        lessonPlanId: lessonPlanSections.lessonPlanId,
-        anchorId: lessonPlanSections.anchorId,
-        headingText: lessonPlanSections.headingText,
-      })
-      .from(lessonPlanSections)
-      .where(eq(lessonPlanSections.id, q.matchedSectionId));
-    if (section) {
-      lessonPlanLinks[q.id] = section;
+  if (selfAssessmentWithUrl.length > 0) {
+    const sectionIds = selfAssessmentWithUrl
+      .map((q) => q.matchedSectionId)
+      .filter((id): id is string => !!id);
+
+    const sectionMap: Record<string, string> = {};
+    if (sectionIds.length > 0) {
+      const sectionRows = await db
+        .select({ id: lessonPlanSections.id, headingText: lessonPlanSections.headingText })
+        .from(lessonPlanSections)
+        .where(inArray(lessonPlanSections.id, sectionIds));
+      for (const s of sectionRows) {
+        sectionMap[s.id] = s.headingText;
+      }
+    }
+
+    for (const q of selfAssessmentWithUrl) {
+      lessonPlanLinks[q.id] = {
+        url: q.matchedLessonPlanUrl!,
+        headingText: q.matchedSectionId
+          ? (sectionMap[q.matchedSectionId] ?? "查看教案")
+          : "查看教案",
+      };
     }
   }
 

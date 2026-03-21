@@ -53,7 +53,7 @@ export function StudentCardContent({
   questions: Question[];
   answerMap: Map<string, ExistingAnswer>;
   ratingSettings?: { high: [number, number]; mid: [number, number]; low: [number, number] };
-  lessonPlanLinks?: Record<string, { lessonPlanId: string; anchorId: string; headingText: string }>;
+  lessonPlanLinks?: Record<string, { url: string; headingText: string }>;
 }) {
   // Initialize scores from existing answers
   const [scores, setScores] = useState<Map<string, number>>(() => {

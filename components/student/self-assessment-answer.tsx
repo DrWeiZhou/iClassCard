@@ -26,8 +26,7 @@ type ExistingAnswer = {
 } | null;
 
 type LessonPlanLink = {
-  lessonPlanId: string;
-  anchorId: string;
+  url: string;
   headingText: string;
 } | null;
 
@@ -53,9 +52,7 @@ export function SelfAssessmentAnswer({
   const [isPending, startTransition] = useTransition();
   const [showDialog, setShowDialog] = useState(false);
 
-  const lessonPlanUrl = lessonPlanLink
-    ? `/lesson-plan/${lessonPlanLink.lessonPlanId}#${lessonPlanLink.anchorId}`
-    : null;
+  const lessonPlanUrl = lessonPlanLink?.url ?? null;
 
   function handleStarClick(rating: number) {
     if (submitted || isPending) return;

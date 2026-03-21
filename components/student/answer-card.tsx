@@ -59,7 +59,7 @@ export function AnswerCard({
   question: Question;
   existingAnswer: ExistingAnswer | null;
   onScoreUpdate?: (questionId: string, score: number) => void;
-  lessonPlanLink?: { lessonPlanId: string; anchorId: string; headingText: string } | null;
+  lessonPlanLink?: { url: string; headingText: string } | null;
 }) {
   const isAnswered = existingAnswer !== null;
   const isClosed = !!question.closedAt;

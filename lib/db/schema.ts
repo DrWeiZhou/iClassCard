@@ -147,6 +147,7 @@ export const cardQuestions = pgTable("card_questions", {
   closedAt: timestamp("closed_at"),
   matchedSectionId: uuid("matched_section_id")
     .references(() => lessonPlanSections.id, { onDelete: "set null" }),
+  matchedLessonPlanUrl: varchar("matched_lesson_plan_url", { length: 500 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

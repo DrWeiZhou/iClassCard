@@ -97,18 +97,20 @@ ${headingList}
     let matchedHeadingText: string | null = null;
     let matchedAnchorId: string | null = null;
     let matchedLessonPlanId: string | null = null;
+    let matchedLessonPlanUrl: string | null = null;
 
     if (index > 0 && index <= sections.length) {
       matchedSectionId = sections[index - 1].id;
       matchedHeadingText = sections[index - 1].headingText;
       matchedAnchorId = sections[index - 1].anchorId;
       matchedLessonPlanId = sections[index - 1].lessonPlanId;
+      matchedLessonPlanUrl = `/lesson-plan/${matchedLessonPlanId}#${matchedAnchorId}`;
     }
 
-    // Update the question's matched_section_id
+    // Update the question's matched_section_id and matched_lesson_plan_url
     await db
       .update(cardQuestions)
-      .set({ matchedSectionId })
+      .set({ matchedSectionId, matchedLessonPlanUrl })
       .where(eq(cardQuestions.id, questionId));
 
     return NextResponse.json({
@@ -121,10 +123,10 @@ ${headingList}
   } catch (error) {
     console.error("AI matching error:", error);
 
-    // Set matched_section_id to null on failure
+    // Set matched fields to null on failure
     await db
       .update(cardQuestions)
-      .set({ matchedSectionId: null })
+      .set({ matchedSectionId: null, matchedLessonPlanUrl: null })
       .where(eq(cardQuestions.id, questionId));
 
     return NextResponse.json({ error: "AI匹配失败" }, { status: 500 });
