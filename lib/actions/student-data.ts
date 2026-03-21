@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import {
   courseStudents, courses, classrooms, learningCards,
-  cardQuestions, studentAnswers,
+  cardQuestions, studentAnswers, lessonPlanSections,
 } from "@/lib/db/schema";
 import { eq, and, asc, inArray, count } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth";
@@ -143,10 +143,36 @@ export async function getCardForStudent(cardId: string) {
 
   const ratingSettings = await getRatingSettingsByTeacherId(teacherId);
 
+  // Build lesson plan link map for self-assessment questions
+  const selfAssessmentQuestions = questions.filter(
+    (q) => q.type === "self_assessment" && q.matchedSectionId
+  );
+
+  const lessonPlanLinks: Record<
+    string,
+    { lessonPlanId: string; anchorId: string; headingText: string }
+  > = {};
+
+  for (const q of selfAssessmentQuestions) {
+    if (!q.matchedSectionId) continue;
+    const [section] = await db
+      .select({
+        lessonPlanId: lessonPlanSections.lessonPlanId,
+        anchorId: lessonPlanSections.anchorId,
+        headingText: lessonPlanSections.headingText,
+      })
+      .from(lessonPlanSections)
+      .where(eq(lessonPlanSections.id, q.matchedSectionId));
+    if (section) {
+      lessonPlanLinks[q.id] = section;
+    }
+  }
+
   return {
     card,
     questions,
     existingAnswers: cardAnswers,
     ratingSettings,
+    lessonPlanLinks,
   };
 }
