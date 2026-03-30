@@ -225,6 +225,16 @@ function CardItem({
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isPending}
+            onClick={handleEdit}
+          >
+            <Pencil className="mr-1.5 h-4 w-4" />
+            编辑
+          </Button>
+
           {isDraft && (
             <AlertDialog>
               <AlertDialogTrigger
@@ -243,7 +253,7 @@ function CardItem({
                 <AlertDialogHeader>
                   <AlertDialogTitle>确认发放</AlertDialogTitle>
                   <AlertDialogDescription>
-                    发放后学习卡将不可编辑，学生将可以看到并作答。确定要发放吗？
+                    发放后学生将可以看到并作答。确定要发放吗？
                     {card.totalScore !== 100 && (
                       <span className="mt-2 block text-destructive">
                         注意：当前总分为{card.totalScore}

@@ -170,11 +170,7 @@ export async function saveQuestions(
   const ownership = await verifyCardOwnership(cardId);
   if (!ownership) return { error: "未授权" };
 
-  const { card, courseId, classroomId } = ownership;
-
-  if (card.status === "published") {
-    return { error: "已发放的学习卡不能编辑" };
-  }
+  const { courseId, classroomId } = ownership;
 
   const totalScore = questions.reduce((sum, q) => sum + q.score, 0);
 

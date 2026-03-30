@@ -21,11 +21,6 @@ export default async function CardEditPage({
     redirect(`/teacher/courses/${courseId}/classrooms/${classroomId}/cards`);
   }
 
-  // Only draft cards can be edited
-  if (card.status === "published") {
-    redirect(`/teacher/courses/${courseId}/classrooms/${classroomId}/cards`);
-  }
-
   return (
     <CardEditor card={card} courseId={courseId} classroomId={classroomId} defaultTemplates={DEFAULT_TEMPLATES} />
   );
