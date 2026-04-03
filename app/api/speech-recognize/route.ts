@@ -1,21 +1,61 @@
 import { NextRequest, NextResponse } from "next/server";
-import Core from "@alicloud/pop-core";
+import crypto from "crypto";
+
+function percentEncode(str: string): string {
+  return encodeURIComponent(str)
+    .replace(/\+/g, "%20")
+    .replace(/\*/g, "%2A")
+    .replace(/%7E/g, "~");
+}
+
+function generateSignature(params: Record<string, string>, sk: string, method: string): string {
+  const sortedKeys = Object.keys(params).sort();
+  const canonicalizedQuery = sortedKeys
+    .map((key) => `${percentEncode(key)}=${percentEncode(params[key])}`)
+    .join("&");
+
+  const stringToSign = `${method}&${percentEncode("/")}&${percentEncode(canonicalizedQuery)}`;
+  const hmac = crypto.createHmac("sha1", sk + "&");
+  hmac.update(stringToSign);
+  return hmac.digest("base64");
+}
 
 async function getToken(ak: string, sk: string): Promise<string> {
-  const client = new Core({
-    accessKeyId: ak,
-    accessKeySecret: sk,
-    endpoint: "https://nls-meta.cn-shanghai.aliyuncs.com",
-    apiVersion: "2019-02-28",
-  });
-
-  const response = (await client.request("CreateToken", {}, { method: "POST" })) as {
-    Token?: { Id?: string };
+  const params: Record<string, string> = {
+    AccessKeyId: ak,
+    Action: "CreateToken",
+    Version: "2019-02-28",
+    Format: "JSON",
+    RegionId: "cn-shanghai",
+    Timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+    SignatureMethod: "HMAC-SHA1",
+    SignatureVersion: "1.0",
+    SignatureNonce: crypto.randomUUID(),
   };
 
-  const token = response.Token?.Id;
-  if (!token) throw new Error("Failed to obtain token");
-  return token;
+  params.Signature = generateSignature(params, sk, "POST");
+
+  const body = Object.entries(params)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join("&");
+
+  const response = await fetch("https://nls-meta.cn-shanghai.aliyuncs.com/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body,
+  });
+
+  const result = await response.json();
+
+  if (!response.ok || !result.Token?.Id) {
+    throw new Error(
+      `Token error: ${result.Message || result.ErrMsg || JSON.stringify(result)}`
+    );
+  }
+
+  return result.Token.Id;
 }
 
 export async function POST(request: NextRequest) {
@@ -26,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     if (!ak || !sk || !appkey) {
       return NextResponse.json(
-        { error: "Missing Aliyun credentials" },
+        { error: "环境变量未配置：ALIYUN_AK, ALIYUN_SK, ALIYUN_APPKEY" },
         { status: 500 }
       );
     }
@@ -34,12 +74,19 @@ export async function POST(request: NextRequest) {
     const audioBuffer = await request.arrayBuffer();
     if (!audioBuffer || audioBuffer.byteLength === 0) {
       return NextResponse.json(
-        { error: "No audio data received" },
+        { error: "未收到音频数据" },
         { status: 400 }
       );
     }
 
-    const token = await getToken(ak, sk);
+    let token: string;
+    try {
+      token = await getToken(ak, sk);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("Token error:", msg);
+      return NextResponse.json({ error: `Token获取失败: ${msg}` }, { status: 500 });
+    }
 
     const asrUrl = `https://nls-gateway-cn-shanghai.aliyuncs.com/stream/v1/asr?appkey=${appkey}&format=wav&sample_rate=16000&enable_punctuation_prediction=true&enable_inverse_text_normalization=true`;
 
@@ -48,7 +95,6 @@ export async function POST(request: NextRequest) {
       headers: {
         "X-NLS-Token": token,
         "Content-Type": "application/octet-stream",
-        "Content-Length": String(audioBuffer.byteLength),
       },
       body: audioBuffer,
     });
@@ -60,14 +106,15 @@ export async function POST(request: NextRequest) {
     } else {
       console.error("ASR error:", result);
       return NextResponse.json(
-        { error: result.message || "Recognition failed" },
+        { error: `语音识别错误(${result.status}): ${result.message}` },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error("Speech recognition error:", error);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Speech recognition error:", msg);
     return NextResponse.json(
-      { error: "Speech recognition failed" },
+      { error: `语音识别失败: ${msg}` },
       { status: 500 }
     );
   }
