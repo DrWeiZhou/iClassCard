@@ -67,6 +67,7 @@ export async function createDiscussionCard(
     abilityMaxScore: number;
     emotionMaxScore: number;
     innovationMaxScore: number;
+    minRounds: number;
   }
 ) {
   const access = await verifyClassroomAccess(classroomId);
@@ -82,6 +83,7 @@ export async function createDiscussionCard(
     abilityMaxScore: data.abilityMaxScore,
     emotionMaxScore: data.emotionMaxScore,
     innovationMaxScore: data.innovationMaxScore,
+    minRounds: data.minRounds,
   });
 
   revalidatePath(
@@ -99,6 +101,7 @@ export async function updateDiscussionCard(
     abilityMaxScore: number;
     emotionMaxScore: number;
     innovationMaxScore: number;
+    minRounds: number;
   }
 ) {
   const ownership = await verifyDiscussionCardOwnership(cardId);
@@ -119,6 +122,7 @@ export async function updateDiscussionCard(
       abilityMaxScore: data.abilityMaxScore,
       emotionMaxScore: data.emotionMaxScore,
       innovationMaxScore: data.innovationMaxScore,
+      minRounds: data.minRounds,
       updatedAt: new Date(),
     })
     .where(eq(discussionCards.id, cardId));

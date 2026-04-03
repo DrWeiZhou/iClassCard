@@ -43,6 +43,13 @@
       "when": 1774052783255,
       "tag": "0005_greedy_star_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775227652051,
+      "tag": "0006_gifted_vanisher",
+      "breakpoints": true
     }
   ]
 }

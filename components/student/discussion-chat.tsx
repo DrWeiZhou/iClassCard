@@ -23,6 +23,7 @@ type DiscussionCard = {
   abilityMaxScore: number;
   emotionMaxScore: number;
   innovationMaxScore: number;
+  minRounds: number;
 };
 
 type Session = {
@@ -389,6 +390,10 @@ export function DiscussionChat({
 
   const voiceDisabled = isStreaming || isEnding || isCompleted || !sessionId || isVoiceProcessing;
 
+  // Count user message rounds (excluding the auto-sent eval prompt)
+  const userRounds = messages.filter((m) => m.role === "user").length;
+  const roundsInsufficient = userRounds < card.minRounds;
+
   return (
     <div className="flex flex-1 flex-col min-h-0">
       {/* Header */}
@@ -396,6 +401,11 @@ export function DiscussionChat({
         <h2 className="font-semibold text-base">{card.topic}</h2>
         <p className="text-xs text-muted-foreground mt-0.5">
           AI交流卡 · 与AI教师讨论交流
+          {!isCompleted && (
+            <span className="ml-2">
+              已对话 {userRounds}/{card.minRounds} 轮
+            </span>
+          )}
         </p>
       </div>
 
@@ -523,7 +533,15 @@ export function DiscussionChat({
               variant="destructive"
               size="sm"
               disabled={isStreaming || isEnding || messages.length < 2}
-              onClick={() => setConfirmOpen(true)}
+              onClick={() => {
+                if (roundsInsufficient) {
+                  toast.error(
+                    `对话轮次不足，至少需要 ${card.minRounds} 轮对话才能结束交流（当前 ${userRounds} 轮）`
+                  );
+                  return;
+                }
+                setConfirmOpen(true);
+              }}
             >
               {isEnding ? (
                 <span className="flex items-center gap-1">

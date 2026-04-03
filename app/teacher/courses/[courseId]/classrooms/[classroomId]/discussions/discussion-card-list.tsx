@@ -60,6 +60,7 @@ type DiscussionCard = {
   abilityMaxScore: number;
   emotionMaxScore: number;
   innovationMaxScore: number;
+  minRounds: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -71,6 +72,7 @@ type FormData = {
   abilityMaxScore: number;
   emotionMaxScore: number;
   innovationMaxScore: number;
+  minRounds: number;
 };
 
 const defaultFormData: FormData = {
@@ -80,6 +82,7 @@ const defaultFormData: FormData = {
   abilityMaxScore: 20,
   emotionMaxScore: 20,
   innovationMaxScore: 20,
+  minRounds: 3,
 };
 
 export function DiscussionCardList({
@@ -238,6 +241,7 @@ function DiscussionCardItem({
           <span>能力: {card.abilityMaxScore}分</span>
           <span>情感: {card.emotionMaxScore}分</span>
           <span>创新: {card.innovationMaxScore}分</span>
+          <span>最少轮次: {card.minRounds}轮</span>
         </div>
         <div className="flex flex-wrap gap-2">
           {isDraft && (
@@ -346,6 +350,7 @@ function DiscussionFormDialog({
           abilityMaxScore: card.abilityMaxScore,
           emotionMaxScore: card.emotionMaxScore,
           innovationMaxScore: card.innovationMaxScore,
+          minRounds: card.minRounds,
         }
       : defaultFormData
   );
@@ -443,6 +448,21 @@ function DiscussionFormDialog({
                 />
               </div>
             ))}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="minRounds" className="text-xs">
+              最少对话轮次（学生发言不足此轮次无法结束交流）
+            </Label>
+            <Input
+              id="minRounds"
+              type="number"
+              min={1}
+              max={50}
+              value={formData.minRounds}
+              onChange={(e) =>
+                handleChange("minRounds", parseInt(e.target.value) || 1)
+              }
+            />
           </div>
           <DialogFooter>
             <DialogClose render={<Button variant="outline" type="button" />}>

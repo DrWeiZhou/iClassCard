@@ -217,6 +217,7 @@ export const discussionCards = pgTable("discussion_cards", {
   abilityMaxScore: integer("ability_max_score").default(20).notNull(),
   emotionMaxScore: integer("emotion_max_score").default(20).notNull(),
   innovationMaxScore: integer("innovation_max_score").default(20).notNull(),
+  minRounds: integer("min_rounds").default(3).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
