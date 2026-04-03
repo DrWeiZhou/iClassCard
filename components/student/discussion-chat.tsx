@@ -3,10 +3,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useChat } from "@ai-sdk/react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Markdown } from "@/components/ui/markdown";
-import { Send, Loader2 } from "lucide-react";
+import { Loader2, Mic } from "lucide-react";
 import {
   getOrCreateSession,
   completeSession,
@@ -14,6 +13,12 @@ import {
 import { toast } from "sonner";
 import type { UIMessage } from "ai";
 import { DefaultChatTransport } from "ai";
+
+declare global {
+  interface Window {
+    NLS: any;
+  }
+}
 
 type DiscussionCard = {
   id: string;
@@ -105,7 +110,12 @@ export function DiscussionChat({
     existingSession?.status === "completed"
   );
   const [isEnding, setIsEnding] = useState(false);
-  const [input, setInput] = useState("");
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+  const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
+  const [voiceError, setVoiceError] = useState("");
+  const recognizerRef = useRef<any>(null);
+  const voiceTokenRef = useRef<string>("");
+  const voiceAppkeyRef = useRef<string>("");
   const [scores, setScores] = useState<Record<string, number | null>>({
     participationScore: existingSession?.participationScore ?? null,
     attitudeScore: existingSession?.attitudeScore ?? null,
@@ -163,12 +173,100 @@ export function DiscussionChat({
     }
   }, [messages]);
 
-  const handleSend = useCallback(async () => {
-    const text = input.trim();
-    if (!text || isStreaming || isCompleted || isEnding || !sessionId) return;
-    setInput("");
-    await sendMessage({ text });
-  }, [input, isStreaming, isCompleted, isEnding, sessionId, sendMessage]);
+  // Load Aliyun NLS SDK
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src =
+      "https://g.alicdn.com/nls/h5-asr/1.6.8/aliyun-nls-js-sdk.min.js";
+    document.body.appendChild(script);
+    return () => {
+      if (script.parentNode) script.parentNode.removeChild(script);
+    };
+  }, []);
+
+  const getVoiceToken = async () => {
+    try {
+      const res = await fetch("/api/get-aliyun-token", { method: "POST" });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      voiceTokenRef.current = data.token;
+      voiceAppkeyRef.current = data.appkey;
+      return true;
+    } catch {
+      setVoiceError("获取语音Token失败");
+      return false;
+    }
+  };
+
+  const startVoiceRecording = useCallback(async () => {
+    if (isStreaming || isCompleted || isEnding || !sessionId) return;
+    setVoiceError("");
+
+    const tokenOk = await getVoiceToken();
+    if (!tokenOk) return;
+
+    if (!window.NLS) {
+      setVoiceError("语音SDK未加载，请稍后再试");
+      return;
+    }
+
+    try {
+      const recognizer = new window.NLS.SpeechRecognizer({
+        token: voiceTokenRef.current,
+        appkey: voiceAppkeyRef.current,
+        format: "pcm",
+        sampleRate: 16000,
+      });
+
+      recognizer.on("completed", (result: { text: string }) => {
+        setIsVoiceProcessing(false);
+        setIsVoiceRecording(false);
+        const text = result.text?.trim();
+        if (text) {
+          sendMessage({ text });
+        }
+      });
+
+      recognizer.on("failed", () => {
+        setVoiceError("语音识别失败，请重试");
+        setIsVoiceProcessing(false);
+        setIsVoiceRecording(false);
+      });
+
+      recognizer.on("error", () => {
+        setVoiceError("语音识别出错，请重试");
+        setIsVoiceProcessing(false);
+        setIsVoiceRecording(false);
+      });
+
+      recognizerRef.current = recognizer;
+      setIsVoiceRecording(true);
+      recognizer.start();
+    } catch {
+      setVoiceError("无法启动录音，请检查麦克风权限");
+      setIsVoiceRecording(false);
+    }
+  }, [isStreaming, isCompleted, isEnding, sessionId, sendMessage]);
+
+  const stopVoiceRecording = useCallback(() => {
+    if (recognizerRef.current && isVoiceRecording) {
+      try {
+        recognizerRef.current.stop();
+        setIsVoiceRecording(false);
+        setIsVoiceProcessing(true);
+      } catch {
+        setVoiceError("停止录音失败");
+      }
+    }
+  }, [isVoiceRecording]);
+
+  const handleSendVoiceText = useCallback(
+    async (text: string) => {
+      if (!text || isStreaming || isCompleted || isEnding || !sessionId) return;
+      await sendMessage({ text });
+    },
+    [isStreaming, isCompleted, isEnding, sessionId, sendMessage]
+  );
 
   const handleEndDiscussion = useCallback(async () => {
     if (!sessionId || isStreaming) return;
@@ -259,14 +357,7 @@ export function DiscussionChat({
     }
   }, [isEnding, isStreaming, messages, sessionId]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const inputDisabled = isStreaming || isEnding || isCompleted || !sessionId;
+  const voiceDisabled = isStreaming || isEnding || isCompleted || !sessionId || isVoiceProcessing;
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
@@ -360,27 +451,40 @@ export function DiscussionChat({
           )}
       </div>
 
-      {/* Input area */}
+      {/* Voice input area */}
       {!isCompleted && (
         <div className="border-t p-4">
-          <div className="flex items-end gap-2">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={isEnding ? "AI教师评价中..." : "输入你的想法..."}
-              className="min-h-[44px] max-h-32 resize-none"
-              rows={1}
-              disabled={inputDisabled}
-            />
+          <div className="flex flex-col items-center gap-3">
+            {voiceError && (
+              <p className="text-sm text-red-600">{voiceError}</p>
+            )}
+            {isVoiceProcessing && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>识别中...</span>
+              </div>
+            )}
             <Button
-              type="button"
-              size="icon"
-              onClick={handleSend}
-              disabled={!input.trim() || inputDisabled}
-              className="min-h-[44px] min-w-[44px]"
+              onMouseDown={startVoiceRecording}
+              onMouseUp={stopVoiceRecording}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                startVoiceRecording();
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                stopVoiceRecording();
+              }}
+              disabled={voiceDisabled}
+              variant={isVoiceRecording ? "destructive" : "default"}
+              className="w-full h-14 text-base font-semibold select-none"
             >
-              <Send className="h-4 w-4" />
+              <Mic className="h-5 w-5 mr-2" />
+              {isVoiceRecording
+                ? "正在聆听..."
+                : isEnding
+                  ? "AI教师评价中..."
+                  : "按住说话"}
             </Button>
           </div>
           <div className="mt-2 flex justify-end">
