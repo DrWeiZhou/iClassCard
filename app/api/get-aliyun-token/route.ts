@@ -26,7 +26,9 @@ export async function POST(request: NextRequest) {
       method: 'POST',
     };
 
-    const response = await client.request('CreateToken', params, requestOption);
+    const response = await client.request('CreateToken', params, requestOption) as {
+      Token?: { Id?: string };
+    };
 
     return NextResponse.json({
       token: response.Token?.Id,
