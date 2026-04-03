@@ -4,6 +4,12 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
+declare global {
+  interface Window {
+    NLS: any;
+  }
+}
+
 interface RecognitionResult {
   text: string;
   confidence?: number;
