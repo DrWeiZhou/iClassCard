@@ -1,168 +1,141 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mic } from 'lucide-react';
 
-declare global {
-  interface Window {
-    NLS: any;
+function encodeWAV(samples: Float32Array, sampleRate: number): ArrayBuffer {
+  const buffer = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buffer);
+
+  function writeString(offset: number, str: string) {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i));
+    }
   }
+
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + samples.length * 2, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeString(36, 'data');
+  view.setUint32(40, samples.length * 2, true);
+
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+
+  return buffer;
 }
 
-interface RecognitionResult {
-  text: string;
-  confidence?: number;
-}
-
-export function VoiceRecognition() {
+export function VoiceRecognition({
+  onResult,
+}: {
+  onResult?: (text: string) => void;
+}) {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [resultText, setResultText] = useState('');
   const [error, setError] = useState('');
-  const recognizerRef = useRef<any>(null);
-  const tokenRef = useRef<string>('');
-  const appkeyRef = useRef<string>('');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
-  useEffect(() => {
-    // Load SDK dynamically
-    const script = document.createElement('script');
-    script.src = 'https://g.alicdn.com/nls/h5-asr/1.6.8/aliyun-nls-js-sdk.min.js';
-    script.onload = () => {
-      console.log('Aliyun NLS SDK loaded');
-    };
-    document.body.appendChild(script);
-
-    return () => {
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-    };
-  }, []);
-
-  const getToken = async () => {
-    try {
-      const response = await fetch('/api/get-aliyun-token', {
-        method: 'POST',
-      });
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      tokenRef.current = data.token;
-      appkeyRef.current = data.appkey;
-      return true;
-    } catch (err) {
-      setError('Failed to get token from server');
-      console.error('Token fetch error:', err);
-      return false;
-    }
-  };
-
-  const initializeRecognizer = async () => {
-    if (!window.NLS) {
-      setError('NLS SDK not loaded');
-      return false;
-    }
-
-    try {
-      const recognizer = new window.NLS.SpeechRecognizer({
-        token: tokenRef.current,
-        appkey: appkeyRef.current,
-        format: 'pcm',
-        sampleRate: 16000,
-      });
-
-      recognizer.on('completed', (result: RecognitionResult) => {
-        setResultText(result.text || '');
-        setIsProcessing(false);
-        setIsRecording(false);
-      });
-
-      recognizer.on('failed', (error: any) => {
-        setError(`Recognition failed: ${error.message || 'Unknown error'}`);
-        setIsProcessing(false);
-        setIsRecording(false);
-      });
-
-      recognizer.on('error', (error: any) => {
-        setError(`Error: ${error.message || 'Unknown error'}`);
-        setIsProcessing(false);
-        setIsRecording(false);
-      });
-
-      recognizerRef.current = recognizer;
-      return true;
-    } catch (err) {
-      setError('Failed to initialize recognizer');
-      console.error('Recognizer init error:', err);
-      return false;
-    }
-  };
-
-  const startRecording = async () => {
+  const startRecording = useCallback(async () => {
+    if (isProcessing) return;
     setError('');
     setResultText('');
 
-    const tokenOk = await getToken();
-    if (!tokenOk) return;
-
-    const initOk = await initializeRecognizer();
-    if (!initOk) return;
-
     try {
-      setIsRecording(true);
-      recognizerRef.current.start();
-    } catch (err) {
-      setError('Failed to start recording');
-      setIsRecording(false);
-      console.error('Start recording error:', err);
-    }
-  };
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : 'audio/webm',
+      });
+      audioChunksRef.current = [];
 
-  const stopRecording = () => {
-    if (recognizerRef.current && isRecording) {
-      try {
-        recognizerRef.current.stop();
-        setIsRecording(false);
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
         setIsProcessing(true);
-      } catch (err) {
-        setError('Failed to stop recording');
-        console.error('Stop recording error:', err);
-      }
+
+        try {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const arrayBuffer = await audioBlob.arrayBuffer();
+          const audioContext = new AudioContext({ sampleRate: 16000 });
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          const channelData = audioBuffer.getChannelData(0);
+          const wavBuffer = encodeWAV(channelData, 16000);
+
+          const response = await fetch('/api/speech-recognize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/octet-stream' },
+            body: wavBuffer,
+          });
+
+          const result = await response.json();
+          if (result.error) {
+            setError(result.error);
+          } else if (result.text?.trim()) {
+            setResultText(result.text.trim());
+            onResult?.(result.text.trim());
+          } else {
+            setError('未识别到语音内容，请重试');
+          }
+        } catch {
+          setError('语音识别失败，请重试');
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch {
+      setError('无法启动录音，请检查麦克风权限');
     }
-  };
+  }, [isProcessing, onResult]);
 
-  const handleMouseDown = () => {
-    startRecording();
-  };
-
-  const handleMouseUp = () => {
-    stopRecording();
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    e.preventDefault();
-    startRecording();
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    e.preventDefault();
-    stopRecording();
-  };
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  }, [isRecording]);
 
   return (
     <div className="flex flex-col items-center justify-center gap-6 p-6">
       <div className="w-full max-w-md">
         <Button
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleMouseUp}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
+          onMouseDown={startRecording}
+          onMouseUp={stopRecording}
+          onTouchStart={(e) => {
+            e.preventDefault();
+            startRecording();
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            stopRecording();
+          }}
           disabled={isProcessing}
           className="w-full h-16 text-lg font-semibold select-none"
           variant={isRecording ? 'destructive' : 'default'}
         >
+          <Mic className="h-5 w-5 mr-2" />
           {isRecording ? '正在聆听...' : '按住说话'}
         </Button>
       </div>
@@ -170,7 +143,7 @@ export function VoiceRecognition() {
       {isProcessing && (
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span>处理中...</span>
+          <span>识别中...</span>
         </div>
       )}
 

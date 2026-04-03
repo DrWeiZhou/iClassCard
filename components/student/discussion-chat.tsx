@@ -14,12 +14,6 @@ import { toast } from "sonner";
 import type { UIMessage } from "ai";
 import { DefaultChatTransport } from "ai";
 
-declare global {
-  interface Window {
-    NLS: any;
-  }
-}
-
 type DiscussionCard = {
   id: string;
   topic: string;
@@ -94,6 +88,38 @@ function storedToUIMessages(stored: StoredMessage[]): UIMessage[] {
   }));
 }
 
+function encodeWAV(samples: Float32Array, sampleRate: number): ArrayBuffer {
+  const buffer = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buffer);
+
+  function writeString(offset: number, str: string) {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i));
+    }
+  }
+
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + samples.length * 2, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true); // byte rate
+  view.setUint16(32, 2, true); // block align
+  view.setUint16(34, 16, true); // bits per sample
+  writeString(36, "data");
+  view.setUint32(40, samples.length * 2, true);
+
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+
+  return buffer;
+}
+
 export function DiscussionChat({
   card,
   existingSession,
@@ -113,9 +139,8 @@ export function DiscussionChat({
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
   const [voiceError, setVoiceError] = useState("");
-  const recognizerRef = useRef<any>(null);
-  const voiceTokenRef = useRef<string>("");
-  const voiceAppkeyRef = useRef<string>("");
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const [scores, setScores] = useState<Record<string, number | null>>({
     participationScore: existingSession?.participationScore ?? null,
     attitudeScore: existingSession?.attitudeScore ?? null,
@@ -173,100 +198,76 @@ export function DiscussionChat({
     }
   }, [messages]);
 
-  // Load Aliyun NLS SDK
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src =
-      "https://g.alicdn.com/nls/h5-asr/1.6.8/aliyun-nls-js-sdk.min.js";
-    document.body.appendChild(script);
-    return () => {
-      if (script.parentNode) script.parentNode.removeChild(script);
-    };
-  }, []);
-
-  const getVoiceToken = async () => {
-    try {
-      const res = await fetch("/api/get-aliyun-token", { method: "POST" });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      voiceTokenRef.current = data.token;
-      voiceAppkeyRef.current = data.appkey;
-      return true;
-    } catch {
-      setVoiceError("获取语音Token失败");
-      return false;
-    }
-  };
-
   const startVoiceRecording = useCallback(async () => {
-    if (isStreaming || isCompleted || isEnding || !sessionId) return;
+    if (isStreaming || isCompleted || isEnding || !sessionId || isVoiceProcessing) return;
     setVoiceError("");
 
-    const tokenOk = await getVoiceToken();
-    if (!tokenOk) return;
-
-    if (!window.NLS) {
-      setVoiceError("语音SDK未加载，请稍后再试");
-      return;
-    }
-
     try {
-      const recognizer = new window.NLS.SpeechRecognizer({
-        token: voiceTokenRef.current,
-        appkey: voiceAppkeyRef.current,
-        format: "pcm",
-        sampleRate: 16000,
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+          ? "audio/webm;codecs=opus"
+          : "audio/webm",
       });
+      audioChunksRef.current = [];
 
-      recognizer.on("completed", (result: { text: string }) => {
-        setIsVoiceProcessing(false);
-        setIsVoiceRecording(false);
-        const text = result.text?.trim();
-        if (text) {
-          sendMessage({ text });
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
-      });
+      };
 
-      recognizer.on("failed", () => {
-        setVoiceError("语音识别失败，请重试");
-        setIsVoiceProcessing(false);
-        setIsVoiceRecording(false);
-      });
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        setIsVoiceProcessing(true);
 
-      recognizer.on("error", () => {
-        setVoiceError("语音识别出错，请重试");
-        setIsVoiceProcessing(false);
-        setIsVoiceRecording(false);
-      });
+        try {
+          const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
 
-      recognizerRef.current = recognizer;
+          // Convert webm to wav using AudioContext
+          const arrayBuffer = await audioBlob.arrayBuffer();
+          const audioContext = new AudioContext({ sampleRate: 16000 });
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          const channelData = audioBuffer.getChannelData(0);
+
+          // Create WAV file
+          const wavBuffer = encodeWAV(channelData, 16000);
+
+          const response = await fetch("/api/speech-recognize", {
+            method: "POST",
+            headers: { "Content-Type": "application/octet-stream" },
+            body: wavBuffer,
+          });
+
+          const result = await response.json();
+          if (result.error) {
+            setVoiceError(result.error);
+          } else if (result.text?.trim()) {
+            sendMessage({ text: result.text.trim() });
+          } else {
+            setVoiceError("未识别到语音内容，请重试");
+          }
+        } catch {
+          setVoiceError("语音识别失败，请重试");
+        } finally {
+          setIsVoiceProcessing(false);
+        }
+      };
+
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start();
       setIsVoiceRecording(true);
-      recognizer.start();
     } catch {
       setVoiceError("无法启动录音，请检查麦克风权限");
-      setIsVoiceRecording(false);
     }
-  }, [isStreaming, isCompleted, isEnding, sessionId, sendMessage]);
+  }, [isStreaming, isCompleted, isEnding, sessionId, isVoiceProcessing, sendMessage]);
 
   const stopVoiceRecording = useCallback(() => {
-    if (recognizerRef.current && isVoiceRecording) {
-      try {
-        recognizerRef.current.stop();
-        setIsVoiceRecording(false);
-        setIsVoiceProcessing(true);
-      } catch {
-        setVoiceError("停止录音失败");
-      }
+    if (mediaRecorderRef.current && isVoiceRecording) {
+      mediaRecorderRef.current.stop();
+      setIsVoiceRecording(false);
     }
   }, [isVoiceRecording]);
-
-  const handleSendVoiceText = useCallback(
-    async (text: string) => {
-      if (!text || isStreaming || isCompleted || isEnding || !sessionId) return;
-      await sendMessage({ text });
-    },
-    [isStreaming, isCompleted, isEnding, sessionId, sendMessage]
-  );
 
   const handleEndDiscussion = useCallback(async () => {
     if (!sessionId || isStreaming) return;
