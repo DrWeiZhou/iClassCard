@@ -141,6 +141,7 @@ export function DiscussionChat({
   const [voiceError, setVoiceError] = useState("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const isVoiceRecordingRef = useRef(false);
   const [scores, setScores] = useState<Record<string, number | null>>({
     participationScore: existingSession?.participationScore ?? null,
     attitudeScore: existingSession?.attitudeScore ?? null,
@@ -222,7 +223,17 @@ export function DiscussionChat({
         setIsVoiceProcessing(true);
 
         try {
+          if (audioChunksRef.current.length === 0) {
+            setVoiceError("录音时间太短，请按住按钮说话");
+            return;
+          }
+
           const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+
+          if (audioBlob.size < 1000) {
+            setVoiceError("录音时间太短，请按住按钮说话");
+            return;
+          }
 
           // Convert webm to wav using AudioContext
           const arrayBuffer = await audioBlob.arrayBuffer();
@@ -255,19 +266,37 @@ export function DiscussionChat({
       };
 
       mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start();
+      // Use timeslice to collect data chunks every 200ms
+      mediaRecorder.start(200);
       setIsVoiceRecording(true);
+      isVoiceRecordingRef.current = true;
+
+      // Listen for mouseup/touchend on window to handle finger/mouse leaving button
+      const handleGlobalStop = () => {
+        if (isVoiceRecordingRef.current && mediaRecorderRef.current?.state === "recording") {
+          mediaRecorderRef.current.stop();
+          setIsVoiceRecording(false);
+          isVoiceRecordingRef.current = false;
+        }
+        window.removeEventListener("mouseup", handleGlobalStop);
+        window.removeEventListener("touchend", handleGlobalStop);
+        window.removeEventListener("touchcancel", handleGlobalStop);
+      };
+      window.addEventListener("mouseup", handleGlobalStop);
+      window.addEventListener("touchend", handleGlobalStop);
+      window.addEventListener("touchcancel", handleGlobalStop);
     } catch {
       setVoiceError("无法启动录音，请检查麦克风权限");
     }
   }, [isStreaming, isCompleted, isEnding, sessionId, isVoiceProcessing, sendMessage]);
 
   const stopVoiceRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isVoiceRecording) {
+    if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();
       setIsVoiceRecording(false);
+      isVoiceRecordingRef.current = false;
     }
-  }, [isVoiceRecording]);
+  }, []);
 
   const handleEndDiscussion = useCallback(async () => {
     if (!sessionId || isStreaming) return;
@@ -476,6 +505,7 @@ export function DiscussionChat({
                 e.preventDefault();
                 stopVoiceRecording();
               }}
+              onContextMenu={(e) => e.preventDefault()}
               disabled={voiceDisabled}
               variant={isVoiceRecording ? "destructive" : "default"}
               className="w-full h-14 text-base font-semibold select-none"
