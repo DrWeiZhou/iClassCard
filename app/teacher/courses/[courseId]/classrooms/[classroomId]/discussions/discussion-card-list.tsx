@@ -367,6 +367,7 @@ function DiscussionFormDialog({
         abilityMaxScore: card.abilityMaxScore,
         emotionMaxScore: card.emotionMaxScore,
         innovationMaxScore: card.innovationMaxScore,
+        minRounds: card.minRounds,
       });
     }
   }, [cardId]);
