@@ -148,6 +148,55 @@ export async function deleteCard(cardId: string) {
   return { success: true };
 }
 
+// Copy a card (with all questions) to a target classroom
+export async function copyCard(cardId: string, targetClassroomId: string) {
+  const ownership = await verifyCardOwnership(cardId);
+  if (!ownership) return { error: "未授权" };
+
+  const targetAccess = await verifyCardAccess(targetClassroomId);
+  if (!targetAccess) return { error: "目标课堂未授权" };
+
+  const { card } = ownership;
+
+  const sourceQuestions = await db
+    .select()
+    .from(cardQuestions)
+    .where(eq(cardQuestions.cardId, cardId))
+    .orderBy(asc(cardQuestions.order));
+
+  const [newCard] = await db
+    .insert(learningCards)
+    .values({
+      classroomId: targetClassroomId,
+      name: card.name + "(副本)",
+      status: "draft",
+      totalScore: card.totalScore,
+    })
+    .returning({ id: learningCards.id });
+
+  if (sourceQuestions.length > 0) {
+    await db.insert(cardQuestions).values(
+      sourceQuestions.map((q) => ({
+        cardId: newCard.id,
+        type: q.type,
+        order: q.order,
+        title: q.title,
+        content: q.content,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        score: q.score,
+        gradingPrompt: q.gradingPrompt,
+        feedbackPrompt: q.feedbackPrompt,
+      }))
+    );
+  }
+
+  revalidatePath(
+    `/teacher/courses/${targetAccess.courseId}/classrooms/${targetClassroomId}/cards`
+  );
+  return { success: true };
+}
+
 // Save card name and questions (verify ownership, only draft cards)
 // Delete-and-reinsert strategy: delete all existing questions, insert new ones
 // Update name and totalScore on the card

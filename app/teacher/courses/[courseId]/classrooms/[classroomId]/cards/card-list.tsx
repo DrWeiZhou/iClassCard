@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -43,8 +43,18 @@ import {
   ArrowLeft,
   MessageCircle,
   Users,
+  Copy,
 } from "lucide-react";
-import { createCard, deleteCard, publishCard } from "@/lib/actions/cards";
+import { createCard, deleteCard, publishCard, copyCard } from "@/lib/actions/cards";
+import { getCourses } from "@/lib/actions/courses";
+import { getClassrooms } from "@/lib/actions/classrooms";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 type LearningCard = {
@@ -148,6 +158,7 @@ function CardItem({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [copyOpen, setCopyOpen] = useState(false);
   const isDraft = card.status === "draft";
 
   function handleDelete() {
@@ -324,8 +335,23 @@ function CardItem({
             <Users className="mr-1.5 h-4 w-4" />
             统计
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCopyOpen(true)}
+            disabled={isPending}
+          >
+            <Copy className="mr-1.5 h-4 w-4" />
+            复制
+          </Button>
         </div>
       </CardContent>
+      <CopyCardDialog
+        cardId={card.id}
+        cardName={card.name}
+        open={copyOpen}
+        onOpenChange={setCopyOpen}
+      />
     </Card>
   );
 }
@@ -391,6 +417,123 @@ function CreateCardDialog({
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CopyCardDialog({
+  cardId,
+  cardName,
+  open,
+  onOpenChange,
+}: {
+  cardId: string;
+  cardName: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [courseList, setCourseList] = useState<Array<{ id: string; name: string }>>([]);
+  const [classroomList, setClassroomList] = useState<Array<{ id: string; date: string; time: string; name: string | null }>>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [selectedClassroomId, setSelectedClassroomId] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      getCourses().then((data) => {
+        setCourseList(data.map((c) => ({ id: c.id, name: c.name })));
+      });
+      setSelectedCourseId("");
+      setSelectedClassroomId("");
+      setClassroomList([]);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!selectedCourseId) {
+      setClassroomList([]);
+      setSelectedClassroomId("");
+      return;
+    }
+    setLoading(true);
+    setSelectedClassroomId("");
+    getClassrooms(selectedCourseId).then((data) => {
+      setClassroomList(data);
+      setLoading(false);
+    });
+  }, [selectedCourseId]);
+
+  function handleCopy() {
+    if (!selectedClassroomId) return;
+    startTransition(async () => {
+      const result = await copyCard(cardId, selectedClassroomId);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("学习卡已复制");
+        onOpenChange(false);
+      }
+    });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>复制学习卡</DialogTitle>
+          <DialogDescription>
+            将「{cardName}」复制到其他课堂（复制为草稿状态）
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>选择课程</Label>
+            <Select value={selectedCourseId} onValueChange={(v) => setSelectedCourseId(v ?? "")}>
+              <SelectTrigger>
+                <SelectValue placeholder="请选择课程" />
+              </SelectTrigger>
+              <SelectContent>
+                {courseList.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>选择课堂</Label>
+            <Select
+              value={selectedClassroomId}
+              onValueChange={(v) => setSelectedClassroomId(v ?? "")}
+              disabled={!selectedCourseId || loading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={loading ? "加载中..." : "请选择课堂"} />
+              </SelectTrigger>
+              <SelectContent>
+                {classroomList.map((cr) => (
+                  <SelectItem key={cr.id} value={cr.id}>
+                    {cr.date} {cr.time}{cr.name ? ` - ${cr.name}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" type="button" />}>
+            取消
+          </DialogClose>
+          <Button
+            onClick={handleCopy}
+            disabled={!selectedClassroomId || isPending}
+          >
+            {isPending ? "复制中..." : "确认复制"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
