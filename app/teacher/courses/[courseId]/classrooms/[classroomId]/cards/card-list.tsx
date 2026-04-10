@@ -490,7 +490,7 @@ function CopyCardDialog({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>选择课程</Label>
-            <Select value={selectedCourseId} onValueChange={(v) => setSelectedCourseId(v ?? "")}>
+            <Select value={selectedCourseId} onValueChange={(v) => setSelectedCourseId(v ?? "")} items={courseList.map((c) => ({ value: c.id, label: c.name }))}>
               <SelectTrigger>
                 <SelectValue placeholder="请选择课程" />
               </SelectTrigger>
@@ -509,6 +509,7 @@ function CopyCardDialog({
               value={selectedClassroomId}
               onValueChange={(v) => setSelectedClassroomId(v ?? "")}
               disabled={!selectedCourseId || loading}
+              items={classroomList.map((cr) => ({ value: cr.id, label: `${cr.date} ${cr.time}${cr.name ? ` - ${cr.name}` : ""}` }))}
             >
               <SelectTrigger>
                 <SelectValue placeholder={loading ? "加载中..." : "请选择课堂"} />

@@ -108,6 +108,7 @@ function ClassroomFormInner({
             <Select
               value={selectedCourseId}
               onValueChange={(v) => setSelectedCourseId(v ?? "")}
+              items={courses.map((c) => ({ value: c.id, label: c.name }))}
             >
               <SelectTrigger>
                 <SelectValue placeholder="请选择课程" />

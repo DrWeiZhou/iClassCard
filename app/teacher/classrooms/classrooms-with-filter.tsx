@@ -71,7 +71,7 @@ export function ClassroomsWithFilter({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Select value={selectedCourse} onValueChange={(v) => setSelectedCourse(v ?? "all")}>
+        <Select value={selectedCourse} onValueChange={(v) => setSelectedCourse(v ?? "all")} items={[{ value: "all", label: "全部课程" }, ...courses.map((c) => ({ value: c.id, label: c.name }))]}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="筛选课程" />
           </SelectTrigger>
