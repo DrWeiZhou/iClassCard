@@ -1,8 +1,19 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { students, courseStudents, courses } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import {
+  students,
+  courseStudents,
+  courses,
+  classrooms,
+  learningCards,
+  cardQuestions,
+  studentAnswers,
+  discussionCards,
+  discussionSessions,
+  groupRatings,
+} from "@/lib/db/schema";
+import { eq, and, inArray, or } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
@@ -197,6 +208,69 @@ export async function removeStudentFromCourse(
   const user = await verifyCourseOwnership(courseId);
   if (!user) return { error: "未授权" };
 
+  // 1. 查出该课程所有课堂 ID
+  const courseClassrooms = await db
+    .select({ id: classrooms.id })
+    .from(classrooms)
+    .where(eq(classrooms.courseId, courseId));
+
+  if (courseClassrooms.length > 0) {
+    const classroomIds = courseClassrooms.map((c) => c.id);
+
+    // 2. 查出所有学习卡题目 ID
+    const questions = await db
+      .select({ id: cardQuestions.id })
+      .from(cardQuestions)
+      .innerJoin(learningCards, eq(cardQuestions.cardId, learningCards.id))
+      .where(inArray(learningCards.classroomId, classroomIds));
+
+    // 3. 查出所有交流卡 ID
+    const discCards = await db
+      .select({ id: discussionCards.id })
+      .from(discussionCards)
+      .where(inArray(discussionCards.classroomId, classroomIds));
+
+    // 4. 删除学习卡回答记录
+    if (questions.length > 0) {
+      const questionIds = questions.map((q) => q.id);
+      await db
+        .delete(studentAnswers)
+        .where(
+          and(
+            eq(studentAnswers.studentId, studentId),
+            inArray(studentAnswers.questionId, questionIds)
+          )
+        );
+
+      // 5. 删除同伴评价记录（作为评价者或被评价者）
+      await db
+        .delete(groupRatings)
+        .where(
+          and(
+            inArray(groupRatings.questionId, questionIds),
+            or(
+              eq(groupRatings.raterId, studentId),
+              eq(groupRatings.targetStudentId, studentId)
+            )
+          )
+        );
+    }
+
+    // 6. 删除交流卡会话记录
+    if (discCards.length > 0) {
+      const discCardIds = discCards.map((d) => d.id);
+      await db
+        .delete(discussionSessions)
+        .where(
+          and(
+            eq(discussionSessions.studentId, studentId),
+            inArray(discussionSessions.cardId, discCardIds)
+          )
+        );
+    }
+  }
+
+  // 7. 解除课程关联
   await db
     .delete(courseStudents)
     .where(

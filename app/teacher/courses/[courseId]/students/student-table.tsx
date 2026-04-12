@@ -130,7 +130,7 @@ function StudentRow({
             <AlertDialogHeader>
               <AlertDialogTitle>确认移除</AlertDialogTitle>
               <AlertDialogDescription>
-                确定要将学生&quot;{student.name}&quot;从本课程中移除吗？此操作不会删除学生信息，仅取消与本课程的关联。
+                确定要将学生&quot;{student.name}&quot;从本课程中移除吗？该学生在本课程的所有学习卡回答记录和交流卡会话记录也将一并删除。
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
