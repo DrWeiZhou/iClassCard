@@ -44,28 +44,18 @@ export async function POST(request: NextRequest) {
     .where(eq(studentAnswers.id, answerId));
   if (!answer) return new Response("答案不存在", { status: 404 });
 
-  // Find teacher's default model
-  const [card] = await db
-    .select()
+  // Find teacher's default model via single JOIN query
+  const [modelResult] = await db
+    .select({ model: llmModels })
     .from(learningCards)
+    .innerJoin(classrooms, eq(learningCards.classroomId, classrooms.id))
+    .innerJoin(courses, eq(classrooms.courseId, courses.id))
+    .innerJoin(llmModels, and(
+      eq(llmModels.teacherId, courses.teacherId),
+      eq(llmModels.isDefault, true)
+    ))
     .where(eq(learningCards.id, question.cardId));
-  const [classroom] = await db
-    .select()
-    .from(classrooms)
-    .where(eq(classrooms.id, card.classroomId));
-  const [course] = await db
-    .select()
-    .from(courses)
-    .where(eq(courses.id, classroom.courseId));
-  const [model] = await db
-    .select()
-    .from(llmModels)
-    .where(
-      and(
-        eq(llmModels.teacherId, course.teacherId),
-        eq(llmModels.isDefault, true)
-      )
-    );
+  const model = modelResult?.model;
 
   if (!model) return new Response("教师未配置默认模型", { status: 400 });
 

@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { promptTemplates, teachers } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_cache } from "next/cache";
 import { DEFAULT_TEMPLATES } from "@/lib/ai/default-templates";
 
 async function requireTeacher() {
@@ -28,19 +28,26 @@ export async function getTemplateOrDefault(
   questionType: string,
   templateKind: string
 ): Promise<string> {
-  const [template] = await db
-    .select()
-    .from(promptTemplates)
-    .where(
-      and(
-        eq(promptTemplates.teacherId, teacherId),
-        eq(promptTemplates.questionType, questionType),
-        eq(promptTemplates.templateKind, templateKind)
-      )
-    );
+  const cached = unstable_cache(
+    async (tId: string, qType: string, tKind: string) => {
+      const [template] = await db
+        .select()
+        .from(promptTemplates)
+        .where(
+          and(
+            eq(promptTemplates.teacherId, tId),
+            eq(promptTemplates.questionType, qType),
+            eq(promptTemplates.templateKind, tKind)
+          )
+        );
 
-  if (template) return template.content;
-  return DEFAULT_TEMPLATES[questionType]?.[templateKind] ?? "";
+      if (template) return template.content;
+      return DEFAULT_TEMPLATES[qType]?.[tKind] ?? "";
+    },
+    ["prompt-template"],
+    { revalidate: 300 }
+  );
+  return cached(teacherId, questionType, templateKind);
 }
 
 export async function saveTemplate(
@@ -116,13 +123,20 @@ export async function saveRatingSettings(settings: RatingSettings) {
 export async function getRatingSettingsByTeacherId(
   teacherId: string
 ): Promise<RatingSettings> {
-  const [teacher] = await db
-    .select({ ratingSettings: teachers.ratingSettings })
-    .from(teachers)
-    .where(eq(teachers.id, teacherId));
+  const cached = unstable_cache(
+    async (tId: string) => {
+      const [teacher] = await db
+        .select({ ratingSettings: teachers.ratingSettings })
+        .from(teachers)
+        .where(eq(teachers.id, tId));
 
-  if (teacher?.ratingSettings) {
-    return teacher.ratingSettings as RatingSettings;
-  }
-  return DEFAULT_RATING_SETTINGS;
+      if (teacher?.ratingSettings) {
+        return teacher.ratingSettings as RatingSettings;
+      }
+      return DEFAULT_RATING_SETTINGS;
+    },
+    ["rating-settings"],
+    { revalidate: 300 }
+  );
+  return cached(teacherId);
 }

@@ -74,7 +74,11 @@ export async function loginTeacher(
   }
 
   const [teacher] = await db
-    .select()
+    .select({
+      id: teachers.id,
+      name: teachers.name,
+      passwordHash: teachers.passwordHash,
+    })
     .from(teachers)
     .where(eq(teachers.phone, phone));
   if (!teacher) {
@@ -106,7 +110,12 @@ export async function loginStudent(
   }
 
   const [student] = await db
-    .select()
+    .select({
+      id: students.id,
+      name: students.name,
+      studentNo: students.studentNo,
+      passwordHash: students.passwordHash,
+    })
     .from(students)
     .where(eq(students.studentNo, studentNo));
 

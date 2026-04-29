@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
 const COOKIE_NAME = "auth-token";
@@ -39,12 +40,12 @@ export async function setAuthCookie(payload: AuthPayload) {
   });
 }
 
-export async function getAuthUser(): Promise<AuthPayload | null> {
+export const getAuthUser = cache(async (): Promise<AuthPayload | null> => {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
   return verifyToken(token);
-}
+});
 
 export async function clearAuthCookie() {
   const cookieStore = await cookies();

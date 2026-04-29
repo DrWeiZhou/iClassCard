@@ -9,7 +9,7 @@ import {
   students,
   courseStudents,
 } from "@/lib/db/schema";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, count } from "drizzle-orm";
 import { getAuthUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { getRatingSettingsByTeacherId } from "@/lib/actions/templates";
@@ -355,9 +355,9 @@ export async function completeSession(
 }
 
 // Get student discussion cards (for student course page)
-export async function getStudentDiscussionCards() {
+export async function getStudentDiscussionCards(limit = 20, offset = 0) {
   const user = await getAuthUser();
-  if (!user || user.role !== "student") return [];
+  if (!user || user.role !== "student") return { cards: [], total: 0 };
 
   const result = await db
     .select({
@@ -379,9 +379,28 @@ export async function getStudentDiscussionCards() {
         eq(courseStudents.studentId, user.id),
         eq(discussionCards.status, "published")
       )
+    )
+    .limit(limit)
+    .offset(offset);
+
+  // Get total count for pagination
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(courseStudents)
+    .innerJoin(courses, eq(courseStudents.courseId, courses.id))
+    .innerJoin(classrooms, eq(classrooms.courseId, courses.id))
+    .innerJoin(
+      discussionCards,
+      eq(discussionCards.classroomId, classrooms.id)
+    )
+    .where(
+      and(
+        eq(courseStudents.studentId, user.id),
+        eq(discussionCards.status, "published")
+      )
     );
 
-  if (result.length === 0) return [];
+  if (result.length === 0) return { cards: [], total };
 
   // Check session status for each card
   const sessions = await db
@@ -395,7 +414,7 @@ export async function getStudentDiscussionCards() {
 
   const sessionMap = new Map(sessions.map((s) => [s.cardId, s]));
 
-  return result.map((r) => {
+  const cards = result.map((r) => {
     const session = sessionMap.get(r.cardId);
     return {
       ...r,
@@ -403,4 +422,6 @@ export async function getStudentDiscussionCards() {
       totalScore: session?.totalScore ?? null,
     };
   });
+
+  return { cards, total };
 }

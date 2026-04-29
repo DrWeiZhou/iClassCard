@@ -25,11 +25,11 @@ export async function getStudentCourses() {
     .where(eq(courseStudents.studentId, user.id));
 }
 
-export async function getStudentCards() {
+export async function getStudentCards(limit = 20, offset = 0) {
   const user = await getAuthUser();
-  if (!user || user.role !== "student") return [];
+  if (!user || user.role !== "student") return { cards: [], total: 0 };
 
-  // Get all published cards from courses the student is enrolled in
+  // Get all published cards from courses the student is enrolled in (paginated)
   const result = await db
     .select({
       cardId: learningCards.id,
@@ -47,10 +47,26 @@ export async function getStudentCards() {
         eq(courseStudents.studentId, user.id),
         eq(learningCards.status, "published")
       )
+    )
+    .limit(limit)
+    .offset(offset);
+
+  // Get total count for pagination
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(courseStudents)
+    .innerJoin(courses, eq(courseStudents.courseId, courses.id))
+    .innerJoin(classrooms, eq(classrooms.courseId, courses.id))
+    .innerJoin(learningCards, eq(learningCards.classroomId, classrooms.id))
+    .where(
+      and(
+        eq(courseStudents.studentId, user.id),
+        eq(learningCards.status, "published")
+      )
     );
 
   // For each card, get question count and answer count
-  if (result.length === 0) return [];
+  if (result.length === 0) return { cards: [], total };
 
   const cardIds = result.map((r) => r.cardId);
 
@@ -83,7 +99,7 @@ export async function getStudentCards() {
   const qCountMap = new Map(questionCounts.map((q) => [q.cardId, q.questionCount]));
   const aCountMap = new Map(answerCounts.map((a) => [a.cardId, a.answerCount]));
 
-  return result.map((r) => {
+  const cards = result.map((r) => {
     const totalQuestions = qCountMap.get(r.cardId) ?? 0;
     const totalAnswers = aCountMap.get(r.cardId) ?? 0;
     return {
@@ -93,6 +109,8 @@ export async function getStudentCards() {
       answered: totalQuestions > 0 && totalAnswers >= totalQuestions,
     };
   });
+
+  return { cards, total };
 }
 
 export async function getCardForStudent(cardId: string) {

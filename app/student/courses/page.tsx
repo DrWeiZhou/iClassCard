@@ -3,12 +3,19 @@ import { getStudentDiscussionCards } from "@/lib/actions/discussion-cards";
 import { BookOpen } from "lucide-react";
 import { CourseCardTabs } from "./course-card-tabs";
 
+const PAGE_SIZE = 20;
+
 export default async function StudentCoursesPage() {
-  const [courses, cards, discussionCards] = await Promise.all([
+  const [courses, cardsResult, discussionResult] = await Promise.all([
     getStudentCourses(),
-    getStudentCards(),
-    getStudentDiscussionCards(),
+    getStudentCards(PAGE_SIZE, 0),
+    getStudentDiscussionCards(PAGE_SIZE, 0),
   ]);
+
+  const cards = cardsResult.cards;
+  const discussionCards = discussionResult.cards;
+  const hasMoreCards = cardsResult.total > PAGE_SIZE;
+  const hasMoreDiscussions = discussionResult.total > PAGE_SIZE;
 
   // Group cards by courseId
   const cardsByCourse = new Map<string, typeof cards>();
@@ -58,6 +65,11 @@ export default async function StudentCoursesPage() {
           </div>
         );
       })}
+      {(hasMoreCards || hasMoreDiscussions) && (
+        <p className="text-xs text-center text-muted-foreground">
+          显示前 {PAGE_SIZE} 条，共 {cardsResult.total + discussionResult.total - courses.length * 2} 条
+        </p>
+      )}
     </div>
   );
 }

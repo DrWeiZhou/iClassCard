@@ -49,29 +49,23 @@ export async function POST(request: NextRequest) {
     .where(eq(discussionCards.id, session.cardId));
   if (!card) return new Response("交流卡不存在", { status: 404 });
 
-  // Get teacher's default model
-  const [classroom] = await db
-    .select()
+  // Get teacher's default model via single JOIN query
+  const [modelResult] = await db
+    .select({ model: llmModels, teacherId: courses.teacherId })
     .from(classrooms)
+    .innerJoin(courses, eq(classrooms.courseId, courses.id))
+    .innerJoin(llmModels, and(
+      eq(llmModels.teacherId, courses.teacherId),
+      eq(llmModels.isDefault, true)
+    ))
     .where(eq(classrooms.id, card.classroomId));
-  const [course] = await db
-    .select()
-    .from(courses)
-    .where(eq(courses.id, classroom.courseId));
-  const [model] = await db
-    .select()
-    .from(llmModels)
-    .where(
-      and(
-        eq(llmModels.teacherId, course.teacherId),
-        eq(llmModels.isDefault, true)
-      )
-    );
+  const model = modelResult?.model;
+  const teacherId = modelResult?.teacherId;
   if (!model) return new Response("教师未配置默认模型", { status: 400 });
 
   // Get template
   const template = await getTemplateOrDefault(
-    course.teacherId,
+    teacherId,
     "discussion",
     "evaluation"
   );
